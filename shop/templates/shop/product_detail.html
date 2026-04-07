@@ -1,0 +1,25 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ product.name }}</title>
+    <link rel="stylesheet" href="{% static 'shop/style.css' %}">
+</head>
+<body>
+    <div class="detail-container">
+        <a class="back-link" href="{% url 'product_list' %}">← Powrót do listy produktów</a>
+
+        <div class="detail-card">
+            <h1>{{ product.name }}</h1>
+
+            <p><strong>Kategoria:</strong> {{ product.category }}</p>
+
+            <p class="detail-price"><strong>Cena:</strong> {{ product.price }} zł</p>
+            <p class="detail-stock"><strong>Dostępność:</strong> {{ product.stock }}</p>
+
+			<a href="{% url 'add_to_cart' product.id %}" class="cart-button">Dodaj do koszyka</a>
+        </div>
+    </div>
+</body>
+</html>

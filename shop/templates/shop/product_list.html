@@ -1,0 +1,37 @@
+{% extends 'shop/base.html' %}
+{% block title %}Produkty{% endblock %}
+{% block content %}
+{% load static %}
+<!DOCTYPE html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Produkty</title>
+    <link rel="stylesheet" href="{% static 'shop/style.css' %}">
+</head>
+<body>
+    <div class="top-bar">
+        <h1>Lista produktów</h1>
+        <a href="{% url 'cart' %}" class="cart-button">Przejdź do koszyka</a>
+    </div>
+    {% if products %}
+        <div class="products">
+            {% for product in products %}
+                <div class="card">
+                    <h2>
+                        <a href="{% url 'product_detail' product.id %}">
+                            {{ product.name }}
+                        </a>
+                    </h2>
+                    <p><strong>Kategoria:</strong> {{ product.category }}</p>
+                    <p><strong>Cena:</strong> {{ product.price }} zł</p>
+                    <p><strong>Dostępność:</strong> {{ product.stock }}</p>
+                    <a href="{% url 'add_to_cart' product.id %}" class="cart-button">Dodaj do koszyka</a>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>Brak produktów.</p>
+    {% endif %}
+</body>
+{% endblock %}

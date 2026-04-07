@@ -1,0 +1,45 @@
+{% extends 'shop/base.html' %}
+{% block title %}Koszyk{% endblock %}
+{% block content %}
+{% load static %}
+<!DOCTYPE html>
+<head>
+    <meta charset="UTF-8">
+    <title>Koszyk</title>
+    <link rel="stylesheet" href="{% static 'shop/style.css' %}">
+</head>
+<body>
+    <div class="detail-container">
+        <a class="back-link" href="{% url 'product_list' %}">← Powrót do produktów</a>
+
+        <h1>Twój koszyk</h1>
+
+        {% if cart_items %}
+    <div class="cart-list">
+        {% for item in cart_items %}
+            <div class="detail-card">
+                <h2>{{ item.product.name }}</h2>
+                <p><strong>Cena:</strong> {{ item.product.price }} zł</p>
+
+                <div class="quantity-controls">
+                    <a href="{% url 'decrease_quantity' item.product.id %}" class="cart-button">-</a>
+                    <span><strong>Ilość:</strong> {{ item.quantity }}</span>
+                    <a href="{% url 'increase_quantity' item.product.id %}" class="cart-button">+</a>
+                </div>
+
+                <p><strong>Razem:</strong> {{ item.item_total }} zł</p>
+				<a href="{% url 'checkout' %}" class="cart-button">
+					Przejdź do zamówienia
+				</a>
+                <a href="{% url 'remove_from_cart' item.product.id %}" class="cart-button">
+                    Usuń z koszyka
+                </a>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <p>Koszyk jest pusty.</p>
+{% endif %}
+    </div>
+</body>
+{% endblock %}
