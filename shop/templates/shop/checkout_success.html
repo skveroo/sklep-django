@@ -1,0 +1,16 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Zamówienie złożone{% endblock %}
+
+{% block content %}
+<div class="text-center">
+    <h1>Zamówienie złożone!</h1>
+
+    <p>Numer zamówienia: {{ order.id }}</p>
+    <p>Status zamówienia: {{ order.status }}</p>
+
+    <a href="{% url 'product_list' %}" class="btn btn-primary mt-3">
+        Powrót do sklepu
+    </a>
+</div>
+{% endblock %}
