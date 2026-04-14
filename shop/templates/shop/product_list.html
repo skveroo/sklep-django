@@ -14,14 +14,16 @@
                 </h5>
                 <ul class="category-tree">
                     <li>
-                        <a href="{% url 'product_list' %}"
+                        {% build_category_url '' as all_url %}
+                        <a href="{{ all_url }}"
                            class="category-link {% if not selected_category %}active{% endif %}">
                             Wszystkie
                         </a>
                     </li>
                     {% for cat in categories %}
                         <li>
-                            <a href="{% url 'product_list' %}?category={{ cat.slug }}"
+                            {% build_category_url cat.slug as cat_url %}
+                            <a href="{{ cat_url }}"
                                class="category-link {% if selected_category.id == cat.id %}active{% endif %}">
                                 {% if cat.icon %}<i class="fa-solid {{ cat.icon }}"></i>{% endif %}
                                 {{ cat.name }}
@@ -31,7 +33,8 @@
                                 <ul class="category-subtree">
                                     {% for child in cat.children.all %}
                                         <li>
-                                            <a href="{% url 'product_list' %}?category={{ child.slug }}"
+                                            {% build_category_url child.slug as child_url %}
+                                            <a href="{{ child_url }}"
                                                class="category-link {% if selected_category.id == child.id %}active{% endif %}">
                                                 {{ child.name }}
                                                 <span class="cat-count">{{ category_product_counts|dict_get:child.id }}</span>
@@ -48,6 +51,7 @@
                     <i class="fa-solid fa-tags"></i> Tagi
                 </h5>
                 <form method="get" action="{% url 'product_list' %}" id="tagForm">
+                    <!-- Preserve all other filters -->
                     {% if request.GET.category %}
                         <input type="hidden" name="category" value="{{ request.GET.category }}">
                     {% endif %}
@@ -91,8 +95,8 @@
                     {% if request.GET.q %}
                         <input type="hidden" name="q" value="{{ request.GET.q }}">
                     {% endif %}
-                    {% for tag_slug in request.GET.tag %}
-                        <input type="hidden" name="tag" value="{{ tag_slug }}">
+                    {% for tag in selected_tags %}
+                        <input type="hidden" name="tag" value="{{ tag.slug }}">
                     {% endfor %}
                     <div class="filter-group">
                         <label>Cena od</label>
@@ -150,15 +154,18 @@
             {% if selected_tags or selected_category or request.GET.min_price or request.GET.max_price %}
                 <div class="active-filters mb-3">
                     {% if selected_category %}
-                        <a href="{% url 'product_list' %}" class="active-filter">
+                        {% build_remove_category_url as remove_cat_url %}
+                        <a href="{{ remove_cat_url }}" class="active-filter" title="Usuń filtr kategorii">
                             <i class="fa-solid fa-folder"></i> {{ selected_category.name }}
                             <i class="fa-solid fa-xmark filter-remove"></i>
                         </a>
                     {% endif %}
                     {% for tag in selected_tags %}
-                        <span class="active-filter">
+                        {% build_remove_tag_url tag.slug as remove_tag_url %}
+                        <a href="{{ remove_tag_url }}" class="active-filter" title="Usuń tag">
                             <i class="fa-solid fa-tag"></i> {{ tag.name }}
-                        </span>
+                            <i class="fa-solid fa-xmark filter-remove"></i>
+                        </a>
                     {% endfor %}
                     {% if request.GET.min_price %}
                         <span class="active-filter">od {{ request.GET.min_price }} zł</span>
@@ -176,7 +183,6 @@
                 {% for product in products %}
                     <div class="col-12 col-md-6 col-xl-4">
                         <div class="product-card">
-                            <!-- Favorite button -->
                             {% if user.is_authenticated %}
                                 <a href="{% url 'toggle_favorite' product.id %}"
                                    class="fav-btn {% if product.id in favorite_ids %}active{% endif %}"
@@ -205,7 +211,6 @@
 
                             <p class="product-description">{{ product.description|truncatewords:12 }}</p>
 
-                            <!-- Rating -->
                             <div class="product-rating">
                                 {% with avg=product.average_rating %}
                                     {% for i in "12345" %}
