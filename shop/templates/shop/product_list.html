@@ -1,4 +1,5 @@
 {% extends 'shop/base.html' %}
+{% load shop_extras %}
 
 {% block title %}Produkty{% endblock %}
 
@@ -24,7 +25,7 @@
                                class="category-link {% if selected_category.id == cat.id %}active{% endif %}">
                                 {% if cat.icon %}<i class="fa-solid {{ cat.icon }}"></i>{% endif %}
                                 {{ cat.name }}
-                                <span class="cat-count">{{ cat.products.count }}</span>
+                                <span class="cat-count">{{ category_product_counts|dict_get:cat.id }}</span>
                             </a>
                             {% if cat.children.all %}
                                 <ul class="category-subtree">
@@ -33,7 +34,7 @@
                                             <a href="{% url 'product_list' %}?category={{ child.slug }}"
                                                class="category-link {% if selected_category.id == child.id %}active{% endif %}">
                                                 {{ child.name }}
-                                                <span class="cat-count">{{ child.products.count }}</span>
+                                                <span class="cat-count">{{ category_product_counts|dict_get:child.id }}</span>
                                             </a>
                                         </li>
                                     {% endfor %}
@@ -46,17 +47,36 @@
                 <h5 class="sidebar-title mt-4">
                     <i class="fa-solid fa-tags"></i> Tagi
                 </h5>
-                <div class="tag-cloud">
-                    {% for tag in tags %}
-                        <a href="{% url 'product_list' %}?tag={{ tag.slug }}"
-                           class="tag-pill {% if selected_tag.id == tag.id %}active{% endif %}">
-                            {{ tag.name }}
-                        </a>
-                    {% endfor %}
-                    {% if not tags %}
-                        <span class="text-muted-custom">Brak tagów</span>
+                <form method="get" action="{% url 'product_list' %}" id="tagForm">
+                    {% if request.GET.category %}
+                        <input type="hidden" name="category" value="{{ request.GET.category }}">
                     {% endif %}
-                </div>
+                    {% if request.GET.q %}
+                        <input type="hidden" name="q" value="{{ request.GET.q }}">
+                    {% endif %}
+                    {% if request.GET.min_price %}
+                        <input type="hidden" name="min_price" value="{{ request.GET.min_price }}">
+                    {% endif %}
+                    {% if request.GET.max_price %}
+                        <input type="hidden" name="max_price" value="{{ request.GET.max_price }}">
+                    {% endif %}
+                    {% if request.GET.sort %}
+                        <input type="hidden" name="sort" value="{{ request.GET.sort }}">
+                    {% endif %}
+                    <div class="tag-checkboxes">
+                        {% for tag in tags %}
+                            <label class="tag-checkbox {% if tag.id in selected_tag_ids %}active{% endif %}">
+                                <input type="checkbox" name="tag" value="{{ tag.slug }}"
+                                       {% if tag.id in selected_tag_ids %}checked{% endif %}
+                                       onchange="document.getElementById('tagForm').submit()">
+                                {{ tag.name }}
+                            </label>
+                        {% endfor %}
+                        {% if not tags %}
+                            <span class="text-muted-custom">Brak tagów</span>
+                        {% endif %}
+                    </div>
+                </form>
             </div>
 
             <!-- Price filter -->
@@ -71,9 +91,9 @@
                     {% if request.GET.q %}
                         <input type="hidden" name="q" value="{{ request.GET.q }}">
                     {% endif %}
-                    {% if request.GET.tag %}
-                        <input type="hidden" name="tag" value="{{ request.GET.tag }}">
-                    {% endif %}
+                    {% for tag_slug in request.GET.tag %}
+                        <input type="hidden" name="tag" value="{{ tag_slug }}">
+                    {% endfor %}
                     <div class="filter-group">
                         <label>Cena od</label>
                         <input type="number" name="min_price" class="filter-field"
@@ -115,8 +135,8 @@
                 <h1 class="page-title">
                     {% if selected_category %}
                         {{ selected_category.name }}
-                    {% elif selected_tag %}
-                        Tag: {{ selected_tag.name }}
+                    {% elif selected_tags %}
+                        Tagi: {% for t in selected_tags %}{{ t.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
                     {% elif request.GET.q %}
                         Wyniki: „{{ request.GET.q }}"
                     {% else %}
@@ -125,6 +145,32 @@
                 </h1>
                 <span class="product-count">{{ products|length }} produktów</span>
             </div>
+
+            <!-- Active filters -->
+            {% if selected_tags or selected_category or request.GET.min_price or request.GET.max_price %}
+                <div class="active-filters mb-3">
+                    {% if selected_category %}
+                        <a href="{% url 'product_list' %}" class="active-filter">
+                            <i class="fa-solid fa-folder"></i> {{ selected_category.name }}
+                            <i class="fa-solid fa-xmark filter-remove"></i>
+                        </a>
+                    {% endif %}
+                    {% for tag in selected_tags %}
+                        <span class="active-filter">
+                            <i class="fa-solid fa-tag"></i> {{ tag.name }}
+                        </span>
+                    {% endfor %}
+                    {% if request.GET.min_price %}
+                        <span class="active-filter">od {{ request.GET.min_price }} zł</span>
+                    {% endif %}
+                    {% if request.GET.max_price %}
+                        <span class="active-filter">do {{ request.GET.max_price }} zł</span>
+                    {% endif %}
+                    <a href="{% url 'product_list' %}" class="clear-filters">
+                        <i class="fa-solid fa-xmark"></i> Wyczyść filtry
+                    </a>
+                </div>
+            {% endif %}
 
             <div class="row g-4">
                 {% for product in products %}

@@ -344,6 +344,78 @@ a {
     color: #fff;
 }
 
+/* Tag checkboxes */
+.tag-checkboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.tag-checkbox {
+    background: rgba(255,255,255,0.06);
+    color: #bbb;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.tag-checkbox:hover {
+    background: rgba(108,92,231,0.2);
+    color: #6c5ce7;
+}
+
+.tag-checkbox.active {
+    background: #6c5ce7;
+    color: #fff;
+}
+
+.tag-checkbox input[type="checkbox"] {
+    display: none;
+}
+
+/* Active filters bar */
+.active-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.active-filter {
+    background: rgba(108,92,231,0.15);
+    color: #6c5ce7;
+    padding: 5px 12px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.filter-remove {
+    font-size: 0.7rem;
+    opacity: 0.7;
+}
+
+.clear-filters {
+    color: #ff6b6b;
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin-left: 8px;
+    transition: color 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.clear-filters:hover {
+    color: #fff;
+}
+
 /* Filters */
 .filter-group {
     margin-bottom: 12px;

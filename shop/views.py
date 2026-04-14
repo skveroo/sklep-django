@@ -33,6 +33,14 @@ def product_list(request):
     categories = get_category_tree()
     tags = Tag.objects.all()
 
+    # Build category product counts (including children)
+    category_product_counts = {}
+    for cat in Category.objects.all():
+        cat_ids = cat.get_all_children_ids()
+        category_product_counts[cat.id] = Product.objects.filter(
+            is_active=True, category_id__in=cat_ids
+        ).count()
+
     # Category filter (including children)
     category_slug = request.GET.get('category')
     selected_category = None
@@ -42,13 +50,13 @@ def product_list(request):
             category_ids = selected_category.get_all_children_ids()
             products = products.filter(category_id__in=category_ids)
 
-    # Tag filter
-    tag_slug = request.GET.get('tag')
-    selected_tag = None
-    if tag_slug:
-        selected_tag = Tag.objects.filter(slug=tag_slug).first()
-        if selected_tag:
-            products = products.filter(tags=selected_tag)
+    # Tag filter (multiple tags)
+    selected_tag_slugs = request.GET.getlist('tag')
+    selected_tags = []
+    if selected_tag_slugs:
+        selected_tags = list(Tag.objects.filter(slug__in=selected_tag_slugs))
+        for tag in selected_tags:
+            products = products.filter(tags=tag)
 
     # Search (name + description + tags)
     query = request.GET.get('q')
@@ -80,6 +88,8 @@ def product_list(request):
     elif sort == 'newest':
         products = products.order_by('-created_at')
 
+    products = products.distinct()
+
     # Check favorites for logged-in user
     favorite_ids = []
     if request.user.is_authenticated:
@@ -87,12 +97,17 @@ def product_list(request):
             Favorite.objects.filter(user=request.user).values_list('product_id', flat=True)
         )
 
+    # Build selected tag IDs for template
+    selected_tag_ids = [t.id for t in selected_tags]
+
     return render(request, 'shop/product_list.html', {
         'products': products,
         'categories': categories,
         'tags': tags,
         'selected_category': selected_category,
-        'selected_tag': selected_tag,
+        'selected_tags': selected_tags,
+        'selected_tag_ids': selected_tag_ids,
+        'category_product_counts': category_product_counts,
         'favorite_ids': favorite_ids,
         'cart_count': get_cart_count(request),
     })
