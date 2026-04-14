@@ -1,20 +1,54 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import Product, Order, OrderItem
+from .models import Product, Category, Order, OrderItem
+
+def get_cart_count(request):
+    cart = request.session.get('cart', {})
+    return sum(cart.values())
 
 def home(request):
     return render(request, 'shop/home.html', {
         'title': 'Witamy w sklepie',
-        'message': 'Sprawdź naszą ofertę produktów'
+        'message': 'Sprawdź naszą ofertę produktów',
+        'cart_count': get_cart_count(request),
     })
-    
 def product_list(request):
     products = Product.objects.filter(is_active=True)
-    return render(request, 'shop/product_list.html', {'products': products})
+    categories = Category.objects.all()
 
+    category_id = request.GET.get('category')
+    query = request.GET.get('q')
+    sort = request.GET.get('sort')
+    min_price = request.GET.get('min_price')
+    max_price = request.GET.get('max_price')
+
+    if category_id:
+        products = products.filter(category_id=category_id)
+
+    if query:
+        products = products.filter(name__icontains=query)
+
+    if min_price:
+        products = products.filter(price__gte=min_price)
+
+    if max_price:
+        products = products.filter(price__lte=max_price)
+
+    if sort == 'price_asc':
+        products = products.order_by('price')
+    elif sort == 'price_desc':
+        products = products.order_by('-price')
+
+    return render(request, 'shop/product_list.html', {
+        'products': products,
+        'categories': categories,
+        'cart_count': get_cart_count(request),
+    })
 def product_detail(request, id):
     product = get_object_or_404(Product, id=id)
-    return render(request, 'shop/product_detail.html', {'product': product})
-    
+    return render(request, 'shop/product_detail.html', {
+        'product': product,
+        'cart_count': get_cart_count(request),
+    })
 def add_to_cart(request, id):
     cart = request.session.get('cart', {})
     product_id = str(id)
@@ -46,6 +80,7 @@ def cart_view(request):
     return render(request, 'shop/cart.html', {
         'cart_items': cart_items,
         'total': total,
+        'cart_count': get_cart_count(request),
     })
     
 def remove_from_cart(request, id):
@@ -118,10 +153,13 @@ def checkout(request):
         request.session['cart'] = {}
 
         return render(request, 'shop/checkout_success.html', {
-            'order': order
+            'order': order,
+            'cart_count': 0,
         })
 
-    return render(request, 'shop/checkout.html')
+    return render(request, 'shop/checkout.html', {
+        'cart_count': get_cart_count(request),
+    })
     
 def my_orders(request):
     if not request.user.is_authenticated:
@@ -130,5 +168,6 @@ def my_orders(request):
     orders = Order.objects.filter(user=request.user).order_by('-created_at')
 
     return render(request, 'shop/my_orders.html', {
-        'orders': orders
+        'orders': orders,
+        'cart_count': get_cart_count(request),
     })

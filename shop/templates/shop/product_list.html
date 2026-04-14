@@ -1,37 +1,88 @@
 {% extends 'shop/base.html' %}
-{% block title %}Produkty{% endblock %}
-{% block content %}
-{% load static %}
-<!DOCTYPE html>
 
-<head>
-    <meta charset="UTF-8">
-    <title>Produkty</title>
-    <link rel="stylesheet" href="{% static 'shop/style.css' %}">
-</head>
-<body>
-    <div class="top-bar">
-        <h1>Lista produktów</h1>
-        <a href="{% url 'cart' %}" class="cart-button">Przejdź do koszyka</a>
-    </div>
-    {% if products %}
-        <div class="products">
-            {% for product in products %}
-                <div class="card">
-                    <h2>
-                        <a href="{% url 'product_detail' product.id %}">
-                            {{ product.name }}
-                        </a>
-                    </h2>
-                    <p><strong>Kategoria:</strong> {{ product.category }}</p>
-                    <p><strong>Cena:</strong> {{ product.price }} zł</p>
-                    <p><strong>Dostępność:</strong> {{ product.stock }}</p>
-                    <a href="{% url 'add_to_cart' product.id %}" class="cart-button">Dodaj do koszyka</a>
+{% block title %}Produkty{% endblock %}
+
+{% block content %}
+<h1 class="text-white mb-4">Produkty</h1>
+
+<form method="get" class="filter-bar mb-4">
+    <input
+        type="number"
+        name="min_price"
+        class="form-control filter-input"
+        placeholder="Min cena"
+        value="{{ request.GET.min_price }}"
+    >
+
+    <input
+        type="number"
+        name="max_price"
+        class="form-control filter-input"
+        placeholder="Max cena"
+        value="{{ request.GET.max_price }}"
+    >
+
+    <select name="category" class="form-select filter-input">
+        <option value="">Wszystkie kategorie</option>
+        {% for category in categories %}
+            <option value="{{ category.id }}"
+                {% if request.GET.category == category.id|stringformat:"s" %}selected{% endif %}>
+                {{ category.name }}
+            </option>
+        {% endfor %}
+    </select>
+
+    <select name="sort" class="form-select filter-input">
+        <option value="">Domyślne sortowanie</option>
+        <option value="price_asc" {% if request.GET.sort == 'price_asc' %}selected{% endif %}>
+            Cena rosnąco
+        </option>
+        <option value="price_desc" {% if request.GET.sort == 'price_desc' %}selected{% endif %}>
+            Cena malejąco
+        </option>
+    </select>
+
+    <button type="submit" class="btn btn-primary filter-button">Filtruj</button>
+</form>
+
+<div class="row g-4">
+    {% for product in products %}
+        <div class="col-12 col-md-6 col-lg-4">
+            <div class="product-card h-100">
+                <h5 class="product-title">
+			<a href="{% url 'product_detail' product.id %}" class="product-link">
+				{{ product.name }}
+			</a>
+		</h5>
+
+		{% if product.category %}
+			<p class="product-category">{{ product.category.name }}</p>
+		{% endif %}
+
+		<a href="{% url 'product_detail' product.id %}" class="product-image-link">
+			{% if product.image %}
+				<img src="{{ product.image.url }}" class="product-image" alt="{{ product.name }}">
+			{% else %}
+				<div class="product-placeholder">Brak zdjęcia</div>
+			{% endif %}
+</a>
+
+                <p class="product-description">{{ product.description|truncatewords:12 }}</p>
+
+                <p class="product-price">{{ product.price }} zł</p>
+
+                <div class="d-flex gap-2 mt-auto">
+                    <a href="{% url 'product_detail' product.id %}" class="btn btn-outline-light w-50">
+                        Szczegóły
+                    </a>
+                    <a href="{% url 'add_to_cart' product.id %}" class="btn btn-success w-50">
+                        Do koszyka
+                    </a>
                 </div>
-            {% endfor %}
+            </div>
         </div>
-    {% else %}
-        <p>Brak produktów.</p>
-    {% endif %}
-</body>
+    {% empty %}
+        <p class="text-white">Brak produktów.</p>
+    {% endfor %}
+</div>
 {% endblock %}
