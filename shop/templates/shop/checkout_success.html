@@ -3,14 +3,45 @@
 {% block title %}Zamówienie złożone{% endblock %}
 
 {% block content %}
-<div class="text-center">
-    <h1>Zamówienie złożone!</h1>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="success-card">
+                <div class="success-icon">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+                <h1 class="success-title">Zamówienie złożone!</h1>
+                <p class="success-subtitle">Dziękujemy za zakupy w naszym sklepie.</p>
 
-    <p>Numer zamówienia: {{ order.id }}</p>
-    <p>Status zamówienia: {{ order.status }}</p>
+                <div class="success-details">
+                    <div class="success-row">
+                        <span>Numer zamówienia</span>
+                        <strong>#{{ order.id }}</strong>
+                    </div>
+                    <div class="success-row">
+                        <span>Status</span>
+                        <span class="order-status-badge status-{{ order.status }}">
+                            {{ order.get_status_display }}
+                        </span>
+                    </div>
+                    <div class="success-row">
+                        <span>Kwota</span>
+                        <strong class="success-price">{{ order.total_price }} zł</strong>
+                    </div>
+                </div>
 
-    <a href="{% url 'product_list' %}" class="btn btn-primary mt-3">
-        Powrót do sklepu
-    </a>
+                <div class="success-actions">
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'my_orders' %}" class="btn-view-orders">
+                            <i class="fa-solid fa-box"></i> Moje zamówienia
+                        </a>
+                    {% endif %}
+                    <a href="{% url 'product_list' %}" class="btn-browse">
+                        <i class="fa-solid fa-arrow-right"></i> Kontynuuj zakupy
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}

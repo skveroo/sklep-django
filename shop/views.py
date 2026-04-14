@@ -327,17 +327,22 @@ def checkout(request):
     if not cart:
         return redirect('product_list')
 
+    # Build cart items for display
+    cart_items = []
+    total = 0
+    for product_id, quantity in cart.items():
+        product = get_object_or_404(Product, id=product_id)
+        item_total = product.price * quantity
+        total += item_total
+        cart_items.append({
+            'product': product,
+            'quantity': quantity,
+            'item_total': item_total,
+        })
+
     if request.method == 'POST':
         name = request.POST.get('name')
         email = request.POST.get('email')
-
-        total = 0
-        items = []
-
-        for product_id, quantity in cart.items():
-            product = get_object_or_404(Product, id=product_id)
-            total += product.price * quantity
-            items.append((product, quantity))
 
         order = Order.objects.create(
             total_price=total,
@@ -346,12 +351,12 @@ def checkout(request):
             user=request.user if request.user.is_authenticated else None
         )
 
-        for product, quantity in items:
+        for item in cart_items:
             OrderItem.objects.create(
                 order=order,
-                product=product,
-                quantity=quantity,
-                price=product.price
+                product=item['product'],
+                quantity=item['quantity'],
+                price=item['product'].price
             )
 
         request.session['cart'] = {}
@@ -362,6 +367,8 @@ def checkout(request):
         })
 
     return render(request, 'shop/checkout.html', {
+        'cart_items': cart_items,
+        'total': total,
         'cart_count': get_cart_count(request),
     })
 
