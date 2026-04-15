@@ -72,3 +72,43 @@ def build_remove_category_url(context):
     base = '/products/'
     return f'{base}?{"&".join(params)}' if params else base
 
+
+@register.simple_tag(takes_context=True)
+def build_remove_min_price_url(context):
+    """Build URL removing min_price while preserving everything else."""
+    request = context['request']
+    params = []
+    if request.GET.get('category'):
+        params.append(f'category={request.GET["category"]}')
+    for tag in request.GET.getlist('tag'):
+        params.append(f'tag={tag}')
+    if request.GET.get('q'):
+        params.append(f'q={request.GET["q"]}')
+    # skip min_price
+    if request.GET.get('max_price'):
+        params.append(f'max_price={request.GET["max_price"]}')
+    if request.GET.get('sort'):
+        params.append(f'sort={request.GET["sort"]}')
+    base = '/products/'
+    return f'{base}?{"&".join(params)}' if params else base
+
+
+@register.simple_tag(takes_context=True)
+def build_remove_max_price_url(context):
+    """Build URL removing max_price while preserving everything else."""
+    request = context['request']
+    params = []
+    if request.GET.get('category'):
+        params.append(f'category={request.GET["category"]}')
+    for tag in request.GET.getlist('tag'):
+        params.append(f'tag={tag}')
+    if request.GET.get('q'):
+        params.append(f'q={request.GET["q"]}')
+    if request.GET.get('min_price'):
+        params.append(f'min_price={request.GET["min_price"]}')
+    # skip max_price
+    if request.GET.get('sort'):
+        params.append(f'sort={request.GET["sort"]}')
+    base = '/products/'
+    return f'{base}?{"&".join(params)}' if params else base
+

@@ -88,7 +88,7 @@
                 <h5 class="sidebar-title">
                     <i class="fa-solid fa-filter"></i> Filtry
                 </h5>
-                <form method="get" action="{% url 'product_list' %}">
+                <form method="get" action="{% url 'product_list' %}" id="filterForm">
                     {% if request.GET.category %}
                         <input type="hidden" name="category" value="{{ request.GET.category }}">
                     {% endif %}
@@ -100,13 +100,15 @@
                     {% endfor %}
                     <div class="filter-group">
                         <label>Cena od</label>
-                        <input type="number" name="min_price" class="filter-field"
-                               placeholder="0" value="{{ request.GET.min_price }}">
+                        <input type="number" name="min_price" id="minPriceInput" class="filter-field"
+                               placeholder="0" min="0" step="0.01"
+                               value="{{ request.GET.min_price }}">
                     </div>
                     <div class="filter-group">
                         <label>Cena do</label>
-                        <input type="number" name="max_price" class="filter-field"
-                               placeholder="999" value="{{ request.GET.max_price }}">
+                        <input type="number" name="max_price" id="maxPriceInput" class="filter-field"
+                               placeholder="999" min="0" step="0.01"
+                               value="{{ request.GET.max_price }}">
                     </div>
                     <div class="filter-group">
                         <label>Sortowanie</label>
@@ -168,10 +170,18 @@
                         </a>
                     {% endfor %}
                     {% if request.GET.min_price %}
-                        <span class="active-filter">od {{ request.GET.min_price }} zł</span>
+                        {% build_remove_min_price_url as remove_min_url %}
+                        <a href="{{ remove_min_url }}" class="active-filter" title="Usuń filtr ceny od">
+                            <i class="fa-solid fa-coins"></i> od {{ request.GET.min_price }} zł
+                            <i class="fa-solid fa-xmark filter-remove"></i>
+                        </a>
                     {% endif %}
                     {% if request.GET.max_price %}
-                        <span class="active-filter">do {{ request.GET.max_price }} zł</span>
+                        {% build_remove_max_price_url as remove_max_url %}
+                        <a href="{{ remove_max_url }}" class="active-filter" title="Usuń filtr ceny do">
+                            <i class="fa-solid fa-coins"></i> do {{ request.GET.max_price }} zł
+                            <i class="fa-solid fa-xmark filter-remove"></i>
+                        </a>
                     {% endif %}
                     <a href="{% url 'product_list' %}" class="clear-filters">
                         <i class="fa-solid fa-xmark"></i> Wyczyść filtry
@@ -249,4 +259,48 @@
         </div>
     </div>
 </div>
+
+<script>
+(function() {
+    const minInput = document.getElementById('minPriceInput');
+    const maxInput = document.getElementById('maxPriceInput');
+    const form = document.getElementById('filterForm');
+
+    // When min_price changes, update max_price min attribute
+    minInput.addEventListener('input', function() {
+        const minVal = parseFloat(this.value);
+        if (!isNaN(minVal) && minVal >= 0) {
+            maxInput.setAttribute('min', minVal);
+            // If max is already set and less than new min, clear it
+            const maxVal = parseFloat(maxInput.value);
+            if (!isNaN(maxVal) && maxVal < minVal) {
+                maxInput.value = '';
+            }
+        } else {
+            maxInput.setAttribute('min', '0');
+        }
+    });
+
+    // Set initial min attribute on max field based on current min value
+    if (minInput.value) {
+        const minVal = parseFloat(minInput.value);
+        if (!isNaN(minVal) && minVal >= 0) {
+            maxInput.setAttribute('min', minVal);
+        }
+    }
+
+    // Validate on form submit
+    form.addEventListener('submit', function(e) {
+        const minVal = parseFloat(minInput.value);
+        const maxVal = parseFloat(maxInput.value);
+
+        if (!isNaN(minVal) && !isNaN(maxVal) && maxVal < minVal) {
+            e.preventDefault();
+            alert('Cena "do" nie może być mniejsza niż cena "od"!');
+            maxInput.focus();
+            return false;
+        }
+    });
+})();
+</script>
 {% endblock %}
