@@ -1,45 +1,91 @@
 {% extends 'shop/base.html' %}
+
 {% block title %}Koszyk{% endblock %}
+
 {% block content %}
-{% load static %}
-<!DOCTYPE html>
-<head>
-    <meta charset="UTF-8">
-    <title>Koszyk</title>
-    <link rel="stylesheet" href="{% static 'shop/style.css' %}">
-</head>
-<body>
-    <div class="detail-container">
-        <a class="back-link" href="{% url 'product_list' %}">← Powrót do produktów</a>
+<div class="container py-4">
+    <h1 class="page-title">
+        <i class="fa-solid fa-cart-shopping"></i> Twój koszyk
+    </h1>
 
-        <h1>Twój koszyk</h1>
+    {% if cart_items %}
+        <div class="cart-table-wrapper mt-4">
+            <table class="cart-table">
+                <thead>
+                    <tr>
+                        <th>Produkt</th>
+                        <th>Cena</th>
+                        <th>Ilość</th>
+                        <th>Razem</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in cart_items %}
+                        <tr>
+                            <td class="cart-product-cell">
+                                <a href="{% url 'product_detail' item.product.id %}" class="cart-product-link">
+                                    {% if item.product.image %}
+                                        <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" class="cart-product-img">
+                                    {% else %}
+                                        <div class="cart-product-img-placeholder">
+                                            <i class="fa-regular fa-image"></i>
+                                        </div>
+                                    {% endif %}
+                                    <div>
+                                        <strong>{{ item.product.name }}</strong>
+                                        {% if item.product.category %}
+                                            <span class="cart-product-cat">{{ item.product.category.name }}</span>
+                                        {% endif %}
+                                    </div>
+                                </a>
+                            </td>
+                            <td class="cart-price">{{ item.product.price }} zł</td>
+                            <td>
+                                <div class="cart-qty">
+                                    <a href="{% url 'decrease_quantity' item.product.id %}" class="qty-btn" title="Mniej">
+                                        <i class="fa-solid fa-minus"></i>
+                                    </a>
+                                    <span class="qty-value">{{ item.quantity }}</span>
+                                    <a href="{% url 'increase_quantity' item.product.id %}" class="qty-btn" title="Więcej">
+                                        <i class="fa-solid fa-plus"></i>
+                                    </a>
+                                </div>
+                            </td>
+                            <td class="cart-item-total">{{ item.item_total }} zł</td>
+                            <td>
+                                <a href="{% url 'remove_from_cart' item.product.id %}" class="cart-remove" title="Usuń">
+                                    <i class="fa-solid fa-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
 
-        {% if cart_items %}
-    <div class="cart-list">
-        {% for item in cart_items %}
-            <div class="detail-card">
-                <h2>{{ item.product.name }}</h2>
-                <p><strong>Cena:</strong> {{ item.product.price }} zł</p>
-
-                <div class="quantity-controls">
-                    <a href="{% url 'decrease_quantity' item.product.id %}" class="cart-button">-</a>
-                    <span><strong>Ilość:</strong> {{ item.quantity }}</span>
-                    <a href="{% url 'increase_quantity' item.product.id %}" class="cart-button">+</a>
-                </div>
-
-                <p><strong>Razem:</strong> {{ item.item_total }} zł</p>
-				<a href="{% url 'checkout' %}" class="cart-button">
-					Przejdź do zamówienia
-				</a>
-                <a href="{% url 'remove_from_cart' item.product.id %}" class="cart-button">
-                    Usuń z koszyka
+        <div class="cart-summary">
+            <div class="cart-summary-row">
+                <span>Suma</span>
+                <span class="cart-total-price">{{ total }} zł</span>
+            </div>
+            <div class="cart-actions">
+                <a href="{% url 'product_list' %}" class="btn-continue">
+                    <i class="fa-solid fa-arrow-left"></i> Kontynuuj zakupy
+                </a>
+                <a href="{% url 'checkout' %}" class="btn-checkout">
+                    <i class="fa-solid fa-credit-card"></i> Przejdź do zamówienia
                 </a>
             </div>
-        {% endfor %}
-    </div>
-{% else %}
-    <p>Koszyk jest pusty.</p>
-{% endif %}
-    </div>
-</body>
+        </div>
+    {% else %}
+        <div class="empty-state mt-5">
+            <i class="fa-solid fa-cart-shopping fa-3x"></i>
+            <p class="mt-3">Twój koszyk jest pusty.</p>
+            <a href="{% url 'product_list' %}" class="btn-browse">
+                <i class="fa-solid fa-arrow-right"></i> Przeglądaj produkty
+            </a>
+        </div>
+    {% endif %}
+</div>
 {% endblock %}
