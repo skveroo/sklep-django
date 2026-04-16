@@ -79,7 +79,7 @@ def register_view(request):
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = default_token_generator.make_token(user)
         domain = request.get_host()
-        link = f"http://{domain}/activate/{uid}/{token}"
+        link = f"http://{domain}/account/activate/{uid}/{token}"
 
         text = (f"Cześć {username}!\n"
                 f"Aby aktywować swoje konto kliknij w link:\n"
@@ -89,7 +89,7 @@ def register_view(request):
             message=(f"Cześć {username}!\n"
                 f"Aby aktywować swoje konto kliknij w link:\n"
                 f"{link}"),
-            from_email="sklep-django@o2.pl",
+            from_email="noreply@sklepdjango.pl",
             recipient_list=[email],
             fail_silently=False,
         )
