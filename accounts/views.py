@@ -1,11 +1,8 @@
-from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
-from django.shortcuts import render, redirect
-from django.contrib.auth.models import User
-from django.contrib.auth import login
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+from django.db.models import Sum, Count
 
 def login_view(request):
     if request.method == "POST":
@@ -72,3 +69,55 @@ def register_view(request):
         return redirect("login")
 
     return render(request, "accounts/register.html")
+
+
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from shop.models import Order
+
+@login_required
+def panel_view(request):
+    user = request.user
+
+    # pobranie zamówień użytkownika
+    orders = Order.objects.filter(user=user).order_by('-created_at')
+
+    stats = {
+        "orders_count": orders.count(),
+        "total_spent": orders.aggregate(Sum("total_price"))["total_price__sum"] or 0,
+        "avg_order_value": orders.aggregate(Sum("total_price"))[
+                               "total_price__sum"] / orders.count() if orders.exists() else 0,
+    }
+
+    if request.method == "POST":
+        username = request.POST.get("username", "").strip()
+        email = request.POST.get("email", "").strip()
+
+        errors = []
+
+        if not username:
+            errors.append("Login nie może być pusty.")
+
+        if len(username) < 3:
+            errors.append("Login musi mieć co najmniej 3 znaki.")
+
+        from django.contrib.auth.models import User
+        if User.objects.filter(username=username).exclude(id=user.id).exists():
+            errors.append("Taki login już istnieje.")
+
+        if errors:
+            return render(request, "accounts/panel.html", {
+                "errors": errors,
+                "orders": orders
+            })
+
+        user.username = username
+        user.email = email
+        user.save()
+
+        return redirect("panel")
+
+    return render(request, "accounts/panel.html", {
+        "orders": orders,
+        "stats": stats
+    })
