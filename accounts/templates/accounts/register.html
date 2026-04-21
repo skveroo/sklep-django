@@ -38,60 +38,58 @@
 <!-- MAIN -->
 <main class="main-content d-flex justify-content-center align-items-center" style="min-height: 80vh;">
 
-    <div class="card shadow-sm" style="width: 380px;">
-        <div class="card-body">
+    <div class="sidebar-card" style="width: 380px; margin: auto;">
 
-            <h4 class="text-center mb-4">
-                <i class="fa-solid fa-user-plus"></i> Rejestracja
-            </h4>
+    <h5 class="sidebar-title text-center">
+        <i class="fa-solid fa-user-plus"></i> Rejestracja
+    </h5>
 
-            <form method="post">
-                {% csrf_token %}
+    <form method="post">
+        {% csrf_token %}
 
-                <div class="mb-3">
-                    <label class="form-label">Login</label>
-                    <input type="text" name="username" class="form-control" required>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">E-mail</label>
-                    <input type="email" name="email" class="form-control" required>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Hasło</label>
-                    <input type="password" name="password" class="form-control" required>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Powtórz hasło</label>
-                    <input type="password" name="password2" class="form-control" required>
-                </div>
-
-                {% if errors %}
-                    <div class="alert alert-danger p-2">
-                        <ul class="mb-0">
-                            {% for error in errors %}
-                                <li>{{ error }}</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                {% endif %}
-
-                <button type="submit" class="btn btn-dark w-100">
-                    Zarejestruj
-                </button>
-            </form>
-
-            <div class="text-center mt-3">
-                <small>
-                    Masz już konto?
-                    <a href="{% url 'login' %}">Zaloguj się</a>
-                </small>
-            </div>
-
+        <div class="filter-group">
+            <label>Login</label>
+            <input type="text" name="username" class="filter-field" required>
         </div>
+
+        <div class="filter-group">
+            <label>E-mail</label>
+            <input type="email" name="email" class="filter-field" required>
+        </div>
+
+        <div class="filter-group">
+            <label>Hasło</label>
+            <input type="password" name="password" class="filter-field" required>
+        </div>
+
+        <div class="filter-group">
+            <label>Powtórz hasło</label>
+            <input type="password" name="password2" class="filter-field" required>
+        </div>
+
+        {% if errors %}
+            <div class="alert alert-error mt-2">
+                <ul class="mb-0">
+                    {% for error in errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+        <button type="submit" class="filter-submit w-100 mt-2">
+            Zarejestruj
+        </button>
+    </form>
+
+    <div class="text-center mt-3">
+        <small>
+            Masz już konto?
+            <a href="{% url 'login' %}">Zaloguj się</a>
+        </small>
     </div>
+
+</div>
 
 </main>
 
