@@ -22,12 +22,47 @@
                         <span class="checkout-item-price">{{ item.item_total }} zł</span>
                     </div>
                 {% endfor %}
-                <div class="checkout-total-row">
-                    <span>Do zapłaty:</span>
-                    <span class="checkout-total-price">{{ total }} zł</span>
-                </div>
-            </div>
+					<div class="checkout-total-row">
+						<span>Suma produktów:</span>
+						<span class="checkout-total-price">{{ total }} zł</span>
+					</div>
 
+					{% if discount_code %}
+						<div class="checkout-total-row discount-row">
+							<span>Rabat - kod {{ discount_code.code }}</span>
+							<span class="checkout-discount-price">-{{ discount_amount }} zł</span>
+						</div>
+					{% endif %}
+
+					<div class="checkout-total-row final-total-row">
+						<span>Do zapłaty:</span>
+						<span class="checkout-total-price">{{ final_total }} zł</span>
+					</div>
+            </div>
+			<div class="checkout-form-card mb-4">
+				<h5 class="checkout-section-title">
+					<i class="fa-solid fa-ticket"></i> Kod rabatowy
+				</h5>
+
+				<form method="POST">
+					{% csrf_token %}
+					<input type="hidden" name="action" value="place_order">
+					<input type="hidden" name="action" value="apply_discount">
+
+					<div class="discount-code-row">
+						<input
+							type="text"
+							name="discount_code"
+							class="checkout-field"
+							placeholder="Wpisz kod rabatowy"
+							value="{% if discount_code %}{{ discount_code.code }}{% endif %}"
+						>
+						<button type="submit" class="btn-apply-discount">
+							Zastosuj
+						</button>
+					</div>
+				</form>
+			</div>
             <!-- Checkout form -->
             <div class="checkout-form-card">
                 <h5 class="checkout-section-title">
@@ -73,8 +108,8 @@
                             <i class="fa-solid fa-arrow-left"></i> Powrót do koszyka
                         </a>
                         <button type="submit" class="btn-place-order">
-                            <i class="fa-solid fa-check"></i> Złóż zamówienie — {{ total }} zł
-                        </button>
+							<i class="fa-solid fa-check"></i> Złóż zamówienie — {{ final_total }} zł
+						</button>
                     </div>
                 </form>
             </div>

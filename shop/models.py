@@ -1,7 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils.text import slugify
-
+from decimal import Decimal
+from django.utils import timezone
 
 class Category(models.Model):
     name = models.CharField(max_length=100)
@@ -169,6 +170,69 @@ class ProductInquiry(models.Model):
     def __str__(self):
         return f"Zapytanie: {self.product.name} od {self.name}"
 
+class DiscountCode(models.Model):
+    DISCOUNT_TYPE_CHOICES = [
+        ('percent', 'Procentowy'),
+        ('amount', 'Kwotowy'),
+    ]
+
+    code = models.CharField(max_length=50, unique=True, verbose_name='Kod')
+    discount_type = models.CharField(
+        max_length=10,
+        choices=DISCOUNT_TYPE_CHOICES,
+        default='percent',
+        verbose_name='Typ rabatu'
+    )
+    value = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Wartość rabatu')
+    is_active = models.BooleanField(default=True, verbose_name='Aktywny')
+    valid_from = models.DateTimeField(null=True, blank=True, verbose_name='Ważny od')
+    valid_to = models.DateTimeField(null=True, blank=True, verbose_name='Ważny do')
+    min_order_value = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        verbose_name='Minimalna wartość zamówienia'
+    )
+    usage_limit = models.PositiveIntegerField(null=True, blank=True, verbose_name='Limit użyć')
+    used_count = models.PositiveIntegerField(default=0, verbose_name='Liczba użyć')
+
+    class Meta:
+        verbose_name = 'Kod rabatowy'
+        verbose_name_plural = 'Kody rabatowe'
+
+    def __str__(self):
+        return self.code
+
+    def is_valid_for_order(self, total):
+        now = timezone.now()
+
+        if not self.is_active:
+            return False, 'Ten kod rabatowy jest nieaktywny.'
+
+        if self.valid_from and now < self.valid_from:
+            return False, 'Ten kod rabatowy nie jest jeszcze aktywny.'
+
+        if self.valid_to and now > self.valid_to:
+            return False, 'Ten kod rabatowy wygasł.'
+
+        if total < self.min_order_value:
+            return False, f'Ten kod działa od kwoty {self.min_order_value} zł.'
+
+        if self.usage_limit is not None and self.used_count >= self.usage_limit:
+            return False, 'Ten kod rabatowy został już wykorzystany maksymalną liczbę razy.'
+
+        return True, ''
+
+    def calculate_discount(self, total):
+        if self.discount_type == 'percent':
+            discount = total * (self.value / Decimal('100'))
+        else:
+            discount = self.value
+
+        if discount > total:
+            discount = total
+
+        return discount.quantize(Decimal('0.01'))
 
 class Order(models.Model):
     STATUS_CHOICES = [
@@ -179,6 +243,15 @@ class Order(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
+    original_total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    discount_code = models.ForeignKey(
+        DiscountCode,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='orders'
+    )
+    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     customer_name = models.CharField(max_length=100, blank=True, null=True)
     customer_email = models.EmailField(blank=True, null=True)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
