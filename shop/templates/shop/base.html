@@ -77,8 +77,68 @@
     {% block content %}
     {% endblock %}
 </main>
+<div class="modal fade" id="cartAddedModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content inquiry-modal">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fa-solid fa-circle-check"></i> Produkt dodany do koszyka
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
 
+            <div class="modal-body">
+                <p>Produkt został dodany do koszyka.</p>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" data-bs-dismiss="modal">
+                    Kontynuuj zakupy
+                </button>
+                <a href="{% url 'cart' %}" class="btn-send-inquiry">
+                    Idź do koszyka
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const addToCartButtons = document.querySelectorAll('.btn-cart, .btn-add-cart');
+    const cartModalElement = document.getElementById('cartAddedModal');
+    const cartModal = new bootstrap.Modal(cartModalElement);
+
+    addToCartButtons.forEach(function (button) {
+        button.addEventListener('click', function (event) {
+            event.preventDefault();
+
+            fetch(button.href, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(function (response) {
+                return response.json();
+            })
+            .then(function (data) {
+                if (data.success) {
+                    const cartBadge = document.querySelector('.cart-badge');
+                    if (cartBadge) {
+                        cartBadge.textContent = data.cart_count;
+                    }
+
+                    cartModal.show();
+                }
+            })
+            .catch(function () {
+                window.location.href = button.href;
+            });
+        });
+    });
+});
+</script>
 {% block extra_js %}{% endblock %}
 </body>
 </html>

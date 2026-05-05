@@ -2,11 +2,11 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from decimal import Decimal
 from .models import (
     Product, Category, Tag, Order, OrderItem,
-    Review, Favorite, ProductInquiry
+    Review, Favorite, ProductInquiry, DiscountCode
 )
-
 
 def get_cart_count(request):
     cart = request.session.get('cart', {})
@@ -282,8 +282,14 @@ def add_to_cart(request, id):
         cart[product_id] = 1
 
     request.session['cart'] = cart
-    return redirect('cart')
 
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({
+            'success': True,
+            'cart_count': get_cart_count(request),
+        })
+
+    return redirect('cart')
 
 def cart_view(request):
     cart = request.session.get('cart', {})
@@ -335,8 +341,135 @@ def decrease_quantity(request, id):
     request.session['cart'] = cart
     return redirect('cart')
 
+def get_cart_data(request):
+    cart = request.session.get('cart', {})
+
+    cart_items = []
+    total = Decimal('0.00')
+
+    for product_id, quantity in cart.items():
+        product = get_object_or_404(Product, id=product_id)
+        item_total = product.price * quantity
+        total += item_total
+        cart_items.append({
+            'product': product,
+            'quantity': quantity,
+            'item_total': item_total,
+        })
+
+    return cart, cart_items, total
+
+
+def get_applied_discount(request, total):
+    discount_code_id = request.session.get('discount_code_id')
+
+    if not discount_code_id:
+        return None, Decimal('0.00'), total
+
+    try:
+        discount_code = DiscountCode.objects.get(id=discount_code_id)
+    except DiscountCode.DoesNotExist:
+        request.session.pop('discount_code_id', None)
+        request.session.pop('discount_code_text', None)
+        return None, Decimal('0.00'), total
+
+    is_valid, message = discount_code.is_valid_for_order(total)
+
+    if not is_valid:
+        request.session.pop('discount_code_id', None)
+        request.session.pop('discount_code_text', None)
+        messages.error(request, message)
+        return None, Decimal('0.00'), total
+
+    discount_amount = discount_code.calculate_discount(total)
+    final_total = total - discount_amount
+
+    return discount_code, discount_amount, final_total
 
 def checkout(request):
+    cart, cart_items, total = get_cart_data(request)
+
+    if not cart:
+        request.session.pop('discount_code_id', None)
+        request.session.pop('discount_code_text', None)
+        return redirect('product_list')
+
+    discount_code, discount_amount, final_total = get_applied_discount(request, total)
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'apply_discount':
+            code_text = request.POST.get('discount_code', '').strip().upper()
+
+            if not code_text:
+                request.session.pop('discount_code_id', None)
+                request.session.pop('discount_code_text', None)
+                messages.info(request, 'Usunięto kod rabatowy.')
+                return redirect('checkout')
+
+            try:
+                code = DiscountCode.objects.get(code__iexact=code_text)
+            except DiscountCode.DoesNotExist:
+                messages.error(request, 'Nieprawidłowy kod rabatowy.')
+                return redirect('checkout')
+
+            is_valid, message = code.is_valid_for_order(total)
+
+            if not is_valid:
+                messages.error(request, message)
+                return redirect('checkout')
+
+            request.session['discount_code_id'] = code.id
+            request.session['discount_code_text'] = code.code
+            messages.success(request, f'Kod {code.code} został zastosowany.')
+            return redirect('checkout')
+
+        if action == 'place_order':
+            name = request.POST.get('name')
+            email = request.POST.get('email')
+
+            discount_code, discount_amount, final_total = get_applied_discount(request, total)
+
+            order = Order.objects.create(
+                original_total=total,
+                discount_code=discount_code,
+                discount_amount=discount_amount,
+                total_price=final_total,
+                customer_name=name,
+                customer_email=email,
+                user=request.user if request.user.is_authenticated else None
+            )
+
+            for item in cart_items:
+                OrderItem.objects.create(
+                    order=order,
+                    product=item['product'],
+                    quantity=item['quantity'],
+                    price=item['product'].price
+                )
+
+            if discount_code:
+                discount_code.used_count += 1
+                discount_code.save(update_fields=['used_count'])
+
+            request.session['cart'] = {}
+            request.session.pop('discount_code_id', None)
+            request.session.pop('discount_code_text', None)
+
+            return render(request, 'shop/checkout_success.html', {
+                'order': order,
+                'cart_count': 0,
+            })
+
+    return render(request, 'shop/checkout.html', {
+        'cart_items': cart_items,
+        'total': total,
+        'discount_code': discount_code,
+        'discount_amount': discount_amount,
+        'final_total': final_total,
+        'cart_count': get_cart_count(request),
+    })
     cart = request.session.get('cart', {})
 
     if not cart:

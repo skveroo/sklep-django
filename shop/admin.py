@@ -2,7 +2,7 @@ from django.contrib import admin
 from .models import (
     Product, Category, Tag, ProductImage,
     HardwareRequirement, Review, Favorite,
-    ProductInquiry, Order, OrderItem
+    ProductInquiry, Order, OrderItem, DiscountCode
 )
 
 
@@ -72,11 +72,24 @@ class ProductInquiryAdmin(admin.ModelAdmin):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'customer_name', 'customer_email', 'total_price', 'status', 'created_at')
-    list_filter = ('status', 'created_at')
+    list_display = (
+        'id', 'user', 'customer_name', 'customer_email',
+        'original_total', 'discount_code', 'discount_amount',
+        'total_price', 'status', 'created_at'
+    )
+    list_filter = ('status', 'created_at', 'discount_code')
     search_fields = ('customer_name', 'customer_email')
 
 
 @admin.register(OrderItem)
 class OrderItemAdmin(admin.ModelAdmin):
     list_display = ('order', 'product', 'quantity', 'price')
+
+@admin.register(DiscountCode)
+class DiscountCodeAdmin(admin.ModelAdmin):
+    list_display = (
+        'code', 'discount_type', 'value', 'is_active',
+        'min_order_value', 'usage_limit', 'used_count', 'valid_from', 'valid_to'
+    )
+    list_filter = ('discount_type', 'is_active')
+    search_fields = ('code',)

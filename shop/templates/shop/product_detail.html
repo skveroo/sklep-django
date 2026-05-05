@@ -18,34 +18,61 @@
         <div class="row g-4">
             <!-- Left: Images -->
             <div class="col-lg-6">
-                <div class="detail-gallery">
-                    <!-- Main image -->
-                    <div class="gallery-main" id="mainImage">
-                        {% if product.image %}
-                            <img src="{{ product.image.url }}" alt="{{ product.name }}" id="mainImg">
-                        {% else %}
-                            <div class="product-placeholder detail-placeholder">
-                                <i class="fa-regular fa-image fa-4x"></i>
-                            </div>
-                        {% endif %}
-                    </div>
+<div class="detail-gallery">
+    <div class="gallery-main gallery-slider" id="productGallery">
+        {% if product.image or product.images.all %}
+            <button type="button" class="gallery-arrow gallery-arrow-left" onclick="prevGalleryImage()">
+                <i class="fa-solid fa-chevron-left"></i>
+            </button>
 
-                    <!-- Thumbnails -->
-                    {% if product.images.all %}
-                        <div class="gallery-thumbs">
-                            {% if product.image %}
-                                <div class="thumb active" onclick="changeImage('{{ product.image.url }}', this)">
-                                    <img src="{{ product.image.url }}" alt="Okładka">
-                                </div>
-                            {% endif %}
-                            {% for img in product.images.all %}
-                                <div class="thumb" onclick="changeImage('{{ img.image.url }}', this)">
-                                    <img src="{{ img.image.url }}" alt="{{ img.caption|default:product.name }}">
-                                </div>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                </div>
+            <img
+                src="{% if product.image %}{{ product.image.url }}{% else %}{{ product.images.all.0.image.url }}{% endif %}"
+                alt="{{ product.name }}"
+                id="mainGalleryImg"
+            >
+
+            <button type="button" class="gallery-arrow gallery-arrow-right" onclick="nextGalleryImage()">
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
+
+            <div class="gallery-counter">
+                <span id="galleryCurrent">1</span> / <span id="galleryTotal">1</span>
+            </div>
+        {% else %}
+            <div class="product-placeholder detail-placeholder">
+                <i class="fa-regular fa-image fa-4x"></i>
+            </div>
+        {% endif %}
+    </div>
+
+    {% if product.image or product.images.all %}
+        <div class="gallery-thumbs" id="galleryThumbs">
+            {% if product.image %}
+                <button
+                    type="button"
+                    class="thumb active"
+                    data-image="{{ product.image.url }}"
+                    data-index="0"
+                    onclick="setGalleryImage(0)"
+                >
+                    <img src="{{ product.image.url }}" alt="Okładka">
+                </button>
+            {% endif %}
+
+            {% for img in product.images.all %}
+                <button
+                    type="button"
+                    class="thumb"
+                    data-image="{{ img.image.url }}"
+                    data-index="{% if product.image %}{{ forloop.counter }}{% else %}{{ forloop.counter0 }}{% endif %}"
+                    onclick="setGalleryImage({% if product.image %}{{ forloop.counter }}{% else %}{{ forloop.counter0 }}{% endif %})"
+                >
+                    <img src="{{ img.image.url }}" alt="{{ img.caption|default:product.name }}">
+                </button>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
             </div>
 
             <!-- Right: Info -->
@@ -311,27 +338,157 @@
 
 {% block extra_js %}
 <script>
-    // Image gallery
-    function changeImage(url, thumb) {
-        document.getElementById('mainImg').src = url;
-        document.querySelectorAll('.thumb').forEach(t => t.classList.remove('active'));
-        thumb.classList.add('active');
+    let galleryImages = [];
+    let currentGalleryIndex = 0;
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const thumbs = document.querySelectorAll('#galleryThumbs .thumb');
+
+        galleryImages = Array.from(thumbs).map(function (thumb) {
+            return thumb.dataset.image;
+        });
+
+        const totalElement = document.getElementById('galleryTotal');
+        if (totalElement) {
+            totalElement.textContent = galleryImages.length;
+        }
+
+        const currentElement = document.getElementById('galleryCurrent');
+        if (currentElement && galleryImages.length > 0) {
+            currentElement.textContent = 1;
+        }
+
+        updateGalleryButtons();
+    });
+
+function setGalleryImage(index, forcedDirection) {
+    if (!galleryImages.length || index === currentGalleryIndex) {
+        return;
     }
 
-    // Tab switching
+    const mainImage = document.getElementById('mainGalleryImg');
+
+    if (!mainImage) {
+        return;
+    }
+
+    const oldIndex = currentGalleryIndex;
+    const direction = forcedDirection || (index > oldIndex ? 'next' : 'prev');
+
+    currentGalleryIndex = index;
+
+    mainImage.classList.remove('slide-in-left', 'slide-in-right', 'slide-out-left', 'slide-out-right');
+
+    if (direction === 'next') {
+        mainImage.classList.add('slide-out-left');
+    } else {
+        mainImage.classList.add('slide-out-right');
+    }
+
+    setTimeout(function () {
+        mainImage.src = galleryImages[currentGalleryIndex];
+
+        mainImage.classList.remove('slide-out-left', 'slide-out-right');
+
+        if (direction === 'next') {
+            mainImage.classList.add('slide-in-right');
+        } else {
+            mainImage.classList.add('slide-in-left');
+        }
+
+        setTimeout(function () {
+            mainImage.classList.remove('slide-in-left', 'slide-in-right');
+        }, 220);
+    }, 220);
+
+    document.querySelectorAll('#galleryThumbs .thumb').forEach(function (thumb) {
+        thumb.classList.remove('active');
+    });
+
+    const activeThumb = document.querySelector('#galleryThumbs .thumb[data-index="' + currentGalleryIndex + '"]');
+    if (activeThumb) {
+        activeThumb.classList.add('active');
+        activeThumb.scrollIntoView({
+            behavior: 'smooth',
+            inline: 'center',
+            block: 'nearest'
+        });
+    }
+
+    const currentElement = document.getElementById('galleryCurrent');
+    if (currentElement) {
+        currentElement.textContent = currentGalleryIndex + 1;
+    }
+
+    updateGalleryButtons();
+}
+
+function nextGalleryImage() {
+    if (!galleryImages.length) {
+        return;
+    }
+
+    let nextIndex = currentGalleryIndex + 1;
+
+    if (nextIndex >= galleryImages.length) {
+        nextIndex = 0;
+    }
+
+    setGalleryImage(nextIndex, 'next');
+}
+
+function prevGalleryImage() {
+    if (!galleryImages.length) {
+        return;
+    }
+
+    let prevIndex = currentGalleryIndex - 1;
+
+    if (prevIndex < 0) {
+        prevIndex = galleryImages.length - 1;
+    }
+
+    setGalleryImage(prevIndex, 'prev');
+}
+
+    function updateGalleryButtons() {
+        const arrows = document.querySelectorAll('.gallery-arrow');
+
+        if (galleryImages.length <= 1) {
+            arrows.forEach(function (arrow) {
+                arrow.style.display = 'none';
+            });
+        } else {
+            arrows.forEach(function (arrow) {
+                arrow.style.display = 'flex';
+            });
+        }
+    }
+
     function switchTab(tabName, btn) {
-        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(function (tab) {
+            tab.classList.remove('active');
+        });
+
+        document.querySelectorAll('.tab-btn').forEach(function (button) {
+            button.classList.remove('active');
+        });
+
         document.getElementById('tab-' + tabName).classList.add('active');
         btn.classList.add('active');
     }
 
-    // Star rating input
     function setRating(rating) {
-        document.getElementById('ratingInput').value = rating;
+        const ratingInput = document.getElementById('ratingInput');
+
+        if (ratingInput) {
+            ratingInput.value = rating;
+        }
+
         const stars = document.querySelectorAll('#starSelect i');
-        stars.forEach((star, i) => {
-            if (i < rating) {
+
+        stars.forEach(function (star, index) {
+            if (index < rating) {
                 star.className = 'fa-solid fa-star';
             } else {
                 star.className = 'fa-regular fa-star';
