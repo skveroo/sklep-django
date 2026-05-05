@@ -70,6 +70,7 @@
                 </h5>
                 <form method="POST">
                     {% csrf_token %}
+                    <input type="hidden" name="action" value="place_order">
 
                     <div class="form-group">
                         <label>Imię i nazwisko</label>
@@ -86,19 +87,94 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Adres dostawy</label>
-                        <input type="text" name="address" class="checkout-field"
-                               placeholder="ul. Przykładowa 1, 00-001 Warszawa"
-                               value="{% if user_profile %}{{ user_profile.address }}{% endif %}">
-                    </div>
-
-                    <div class="form-group">
                         <label>Telefon</label>
                         <input type="tel" name="phone" class="checkout-field"
                                placeholder="+48 123 456 789"
                                value="{% if user_profile %}{{ user_profile.phone }}{% endif %}">
                     </div>
+                </div>
 
+                <div class="checkout-form-card mt-3">
+                    <h5 class="checkout-section-title">
+                        <i class="fa-solid fa-truck"></i> Adres dostawy
+                    </h5>
+
+                    <div class="form-group">
+                        <label>Ulica</label>
+                        <input type="text" name="street" class="checkout-field" required
+                               placeholder="Przykładowa"
+                               value="{% if user_profile %}{{ user_profile.street }}{% endif %}">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group form-half">
+                            <label>Nr domu</label>
+                            <input type="text" name="house_number" class="checkout-field" required
+                                   placeholder="12"
+                                   value="{% if user_profile %}{{ user_profile.house_number }}{% endif %}">
+                        </div>
+                        <div class="form-group form-half">
+                            <label>Nr mieszkania</label>
+                            <input type="text" name="apartment_number" class="checkout-field"
+                                   placeholder="4 (opcjonalne)"
+                                   value="{% if user_profile %}{{ user_profile.apartment_number }}{% endif %}">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 0 0 35%;">
+                            <label>Kod pocztowy</label>
+                            <input type="text" name="postal_code" class="checkout-field" required
+                                   placeholder="00-001"
+                                   value="{% if user_profile %}{{ user_profile.postal_code }}{% endif %}">
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label>Miejscowość</label>
+                            <input type="text" name="city" class="checkout-field" required
+                                   placeholder="Warszawa"
+                                   value="{% if user_profile %}{{ user_profile.city }}{% endif %}">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="checkout-form-card mt-3">
+                    <h5 class="checkout-section-title">
+                        <i class="fa-solid fa-credit-card"></i> Metoda płatności
+                    </h5>
+
+                    <div class="payment-methods">
+                        <label class="payment-option">
+                            <input type="radio" name="payment_method" value="transfer" checked>
+                            <div class="payment-card">
+                                <i class="fa-solid fa-building-columns"></i>
+                                <span>Przelew bankowy</span>
+                            </div>
+                        </label>
+                        <label class="payment-option">
+                            <input type="radio" name="payment_method" value="blik">
+                            <div class="payment-card">
+                                <i class="fa-solid fa-mobile-screen-button"></i>
+                                <span>BLIK</span>
+                            </div>
+                        </label>
+                        <label class="payment-option">
+                            <input type="radio" name="payment_method" value="card">
+                            <div class="payment-card">
+                                <i class="fa-regular fa-credit-card"></i>
+                                <span>Karta płatnicza</span>
+                            </div>
+                        </label>
+                        <label class="payment-option">
+                            <input type="radio" name="payment_method" value="cod">
+                            <div class="payment-card">
+                                <i class="fa-solid fa-money-bill-wave"></i>
+                                <span>Przy odbiorze</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="checkout-form-card mt-3">
                     <div class="form-group">
                         <label>Uwagi do zamówienia</label>
                         <textarea name="notes" class="checkout-field checkout-textarea"

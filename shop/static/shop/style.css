@@ -2126,3 +2126,76 @@ a.active-filter:hover .filter-remove {
     border-top: 1px solid rgba(255,255,255,0.08);
     margin-top: 12px;
 }
+
+/* ===== Checkout Form Layout ===== */
+.form-row {
+    display: flex;
+    gap: 12px;
+}
+
+.form-half {
+    flex: 1;
+}
+
+/* ===== Payment Methods ===== */
+.payment-methods {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.payment-option {
+    cursor: pointer;
+}
+
+.payment-option input[type="radio"] {
+    display: none;
+}
+
+.payment-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    background: rgba(255,255,255,0.04);
+    border: 2px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    color: #bbb;
+    font-size: 0.88rem;
+    font-weight: 500;
+    transition: all 0.25s ease;
+}
+
+.payment-card i {
+    font-size: 1.2rem;
+    width: 24px;
+    text-align: center;
+    color: #888;
+    transition: color 0.25s;
+}
+
+.payment-card:hover {
+    border-color: rgba(108,92,231,0.3);
+    background: rgba(108,92,231,0.05);
+}
+
+.payment-option input[type="radio"]:checked + .payment-card {
+    border-color: #6c5ce7;
+    background: rgba(108,92,231,0.1);
+    color: #fff;
+    box-shadow: 0 0 20px rgba(108,92,231,0.15);
+}
+
+.payment-option input[type="radio"]:checked + .payment-card i {
+    color: #6c5ce7;
+}
+
+@media (max-width: 480px) {
+    .payment-methods {
+        grid-template-columns: 1fr;
+    }
+    .form-row {
+        flex-direction: column;
+        gap: 0;
+    }
+}

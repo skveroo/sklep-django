@@ -241,6 +241,13 @@ class Order(models.Model):
         ('completed', 'Zrealizowane'),
     ]
 
+    PAYMENT_CHOICES = [
+        ('transfer', 'Przelew bankowy'),
+        ('blik', 'BLIK'),
+        ('card', 'Karta płatnicza'),
+        ('cod', 'Płatność przy odbiorze'),
+    ]
+
     created_at = models.DateTimeField(auto_now_add=True)
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
     original_total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -254,8 +261,31 @@ class Order(models.Model):
     discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     customer_name = models.CharField(max_length=100, blank=True, null=True)
     customer_email = models.EmailField(blank=True, null=True)
+    customer_phone = models.CharField(max_length=20, blank=True, default='')
+    shipping_street = models.CharField(max_length=200, blank=True, default='')
+    shipping_house = models.CharField(max_length=20, blank=True, default='')
+    shipping_apartment = models.CharField(max_length=20, blank=True, default='')
+    shipping_postal_code = models.CharField(max_length=10, blank=True, default='')
+    shipping_city = models.CharField(max_length=100, blank=True, default='')
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_CHOICES, default='transfer')
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+
+    @property
+    def shipping_address(self):
+        parts = []
+        if self.shipping_street:
+            addr = f"ul. {self.shipping_street} {self.shipping_house}".strip()
+            if self.shipping_apartment:
+                addr += f"/{self.shipping_apartment}"
+            parts.append(addr)
+        if self.shipping_postal_code or self.shipping_city:
+            parts.append(f"{self.shipping_postal_code} {self.shipping_city}".strip())
+        return ", ".join(parts)
+
+    @property
+    def payment_method_display(self):
+        return dict(self.PAYMENT_CHOICES).get(self.payment_method, self.payment_method)
 
     def __str__(self):
         return f"Zamówienie #{self.id}"

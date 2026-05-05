@@ -78,9 +78,35 @@
                     </div>
 
                     <div class="filter-group">
-                        <label>Adres dostawy</label>
-                        <input type="text" name="address" value="{{ profile.address }}" class="filter-field"
-                               placeholder="ul. Przykładowa 1, 00-001 Warszawa">
+                        <label>Ulica</label>
+                        <input type="text" name="street" value="{{ profile.street }}" class="filter-field"
+                               placeholder="Przykładowa">
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <div class="filter-group w-50">
+                            <label>Nr domu</label>
+                            <input type="text" name="house_number" value="{{ profile.house_number }}" class="filter-field"
+                                   placeholder="12">
+                        </div>
+                        <div class="filter-group w-50">
+                            <label>Nr mieszkania</label>
+                            <input type="text" name="apartment_number" value="{{ profile.apartment_number }}" class="filter-field"
+                                   placeholder="4">
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <div class="filter-group" style="width: 35%;">
+                            <label>Kod pocztowy</label>
+                            <input type="text" name="postal_code" value="{{ profile.postal_code }}" class="filter-field"
+                                   placeholder="00-001">
+                        </div>
+                        <div class="filter-group" style="width: 65%;">
+                            <label>Miejscowość</label>
+                            <input type="text" name="city" value="{{ profile.city }}" class="filter-field"
+                                   placeholder="Warszawa">
+                        </div>
                     </div>
 
                     <div class="filter-group">

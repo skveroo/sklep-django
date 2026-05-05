@@ -442,6 +442,13 @@ def checkout(request):
                 total_price=final_total,
                 customer_name=name,
                 customer_email=email,
+                customer_phone=request.POST.get('phone', ''),
+                shipping_street=request.POST.get('street', ''),
+                shipping_house=request.POST.get('house_number', ''),
+                shipping_apartment=request.POST.get('apartment_number', ''),
+                shipping_postal_code=request.POST.get('postal_code', ''),
+                shipping_city=request.POST.get('city', ''),
+                payment_method=request.POST.get('payment_method', 'transfer'),
                 user=request.user if request.user.is_authenticated else None
             )
 

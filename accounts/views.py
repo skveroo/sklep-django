@@ -160,7 +160,11 @@ def panel_view(request):
             user.save()
 
             # Save address and phone to profile
-            profile.address = request.POST.get("address", "").strip()
+            profile.street = request.POST.get("street", "").strip()
+            profile.house_number = request.POST.get("house_number", "").strip()
+            profile.apartment_number = request.POST.get("apartment_number", "").strip()
+            profile.postal_code = request.POST.get("postal_code", "").strip()
+            profile.city = request.POST.get("city", "").strip()
             profile.phone = request.POST.get("phone", "").strip()
             profile.save()
 
