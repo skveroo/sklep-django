@@ -77,6 +77,18 @@
                         <input type="email" name="email" value="{{ user.email }}" class="filter-field">
                     </div>
 
+                    <div class="filter-group">
+                        <label>Adres dostawy</label>
+                        <input type="text" name="address" value="{{ profile.address }}" class="filter-field"
+                               placeholder="ul. Przykładowa 1, 00-001 Warszawa">
+                    </div>
+
+                    <div class="filter-group">
+                        <label>Telefon</label>
+                        <input type="tel" name="phone" value="{{ profile.phone }}" class="filter-field"
+                               placeholder="+48 123 456 789">
+                    </div>
+
                     {% if errors %}
                         <div class="alert alert-error mt-2">
                             <ul class="mb-0">

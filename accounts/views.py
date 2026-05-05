@@ -12,6 +12,7 @@ from django.db.models import Sum
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from shop.models import Order
+from .models import UserProfile
 from django.utils import timezone
 
 def login_view(request):
@@ -104,6 +105,9 @@ def panel_view(request):
 
     user = request.user
 
+    # Ensure profile exists (for users created before UserProfile was added)
+    profile, _ = UserProfile.objects.get_or_create(user=user)
+
     orders = Order.objects.filter(user=user).order_by('-created_at')
 
     stats = {
@@ -155,6 +159,11 @@ def panel_view(request):
             user.email = email
             user.save()
 
+            # Save address and phone to profile
+            profile.address = request.POST.get("address", "").strip()
+            profile.phone = request.POST.get("phone", "").strip()
+            profile.save()
+
             return redirect("panel")
         elif action == "change_password":
             old_password = request.POST.get("old_password", "")
@@ -195,6 +204,7 @@ def panel_view(request):
     return render(request, "accounts/panel.html", {
         "orders": orders,
         "stats": stats,
+        "profile": profile,
         "days_since_last_order": days_since_last_order
     })
 

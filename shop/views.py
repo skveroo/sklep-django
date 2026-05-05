@@ -31,7 +31,6 @@ def home(request):
 def product_list(request):
     products = Product.objects.filter(is_active=True).select_related('category')
     categories = get_category_tree()
-    tags = Tag.objects.all()
 
     # Build category product counts (including children)
     category_product_counts = {}
@@ -58,14 +57,14 @@ def product_list(request):
         for tag in selected_tags:
             products = products.filter(tags=tag)
 
-    # Search (name + description + tags)
+    # Search (name + tags only — NOT description to avoid false matches)
     query = request.GET.get('q')
     if query:
         from django.db.models import Q
         products = products.filter(
             Q(name__icontains=query) |
-            Q(description__icontains=query) |
-            Q(tags__name__icontains=query)
+            Q(tags__name__icontains=query) |
+            Q(category__name__icontains=query)
         ).distinct()
 
     # Price range
@@ -90,6 +89,11 @@ def product_list(request):
 
     products = products.distinct()
 
+    # Build available tags from current product queryset (context-aware)
+    available_tags = Tag.objects.filter(
+        products__in=products
+    ).distinct().order_by('name')
+
     # Check favorites for logged-in user
     favorite_ids = []
     if request.user.is_authenticated:
@@ -103,7 +107,7 @@ def product_list(request):
     return render(request, 'shop/product_list.html', {
         'products': products,
         'categories': categories,
-        'tags': tags,
+        'tags': available_tags,
         'selected_category': selected_category,
         'selected_tags': selected_tags,
         'selected_tag_ids': selected_tag_ids,
@@ -448,6 +452,10 @@ def checkout(request):
                     quantity=item['quantity'],
                     price=item['product'].price
                 )
+                # Odejmij stan magazynowy
+                product = item['product']
+                product.stock = max(0, product.stock - item['quantity'])
+                product.save(update_fields=['stock'])
 
             if discount_code:
                 discount_code.used_count += 1
@@ -462,63 +470,22 @@ def checkout(request):
                 'cart_count': 0,
             })
 
+    # Get user profile for address auto-fill
+    user_profile = None
+    if request.user.is_authenticated:
+        from accounts.models import UserProfile
+        user_profile, _ = UserProfile.objects.get_or_create(user=request.user)
+
     return render(request, 'shop/checkout.html', {
         'cart_items': cart_items,
         'total': total,
         'discount_code': discount_code,
         'discount_amount': discount_amount,
         'final_total': final_total,
+        'user_profile': user_profile,
         'cart_count': get_cart_count(request),
     })
-    cart = request.session.get('cart', {})
 
-    if not cart:
-        return redirect('product_list')
-
-    # Build cart items for display
-    cart_items = []
-    total = 0
-    for product_id, quantity in cart.items():
-        product = get_object_or_404(Product, id=product_id)
-        item_total = product.price * quantity
-        total += item_total
-        cart_items.append({
-            'product': product,
-            'quantity': quantity,
-            'item_total': item_total,
-        })
-
-    if request.method == 'POST':
-        name = request.POST.get('name')
-        email = request.POST.get('email')
-
-        order = Order.objects.create(
-            total_price=total,
-            customer_name=name,
-            customer_email=email,
-            user=request.user if request.user.is_authenticated else None
-        )
-
-        for item in cart_items:
-            OrderItem.objects.create(
-                order=order,
-                product=item['product'],
-                quantity=item['quantity'],
-                price=item['product'].price
-            )
-
-        request.session['cart'] = {}
-
-        return render(request, 'shop/checkout_success.html', {
-            'order': order,
-            'cart_count': 0,
-        })
-
-    return render(request, 'shop/checkout.html', {
-        'cart_items': cart_items,
-        'total': total,
-        'cart_count': get_cart_count(request),
-    })
 
 
 def my_orders(request):
