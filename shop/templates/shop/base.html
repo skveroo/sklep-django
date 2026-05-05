@@ -45,9 +45,9 @@
                     <i class="fa-solid fa-box"></i> Zamówienia
                 </a>
                 <div class="nav-user">
-                    <span class="user-name">
+                    <a href="{% url 'panel' %}" class="user-name">
                         <i class="fa-solid fa-user"></i> {{ user.username }}
-                    </span>
+                    </a>
                     <form method="post" action="{% url 'logout' %}" class="d-inline">
                         {% csrf_token %}
                         <button type="submit" class="nav-btn logout-btn">Wyloguj</button>
