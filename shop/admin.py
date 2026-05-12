@@ -79,6 +79,7 @@ class OrderAdmin(admin.ModelAdmin):
     )
     list_filter = ('status', 'created_at', 'discount_code')
     search_fields = ('customer_name', 'customer_email')
+    list_editable = ('status',)
 
 
 @admin.register(OrderItem)
