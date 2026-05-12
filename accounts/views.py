@@ -14,6 +14,7 @@ from django.contrib.auth.decorators import login_required
 from shop.models import Order
 from .models import UserProfile
 from django.utils import timezone
+import re
 
 def login_view(request):
     if request.method == "POST":
@@ -136,23 +137,49 @@ def panel_view(request):
 
             username = request.POST.get("username", "").strip()
             email = request.POST.get("email", "").strip()
+            phone = request.POST.get("phone", "").strip()
+            street = request.POST.get("street", "").strip()
+            house_number = request.POST.get("house_number", "").strip()
+            apartment_number = request.POST.get("apartment_number", "").strip()
+            postal_code = request.POST.get("postal_code", "").strip()
+            city = request.POST.get("city", "").strip()
 
             errors = []
 
             if not username:
                 errors.append("Login nie może być pusty.")
-
-            if len(username) < 3:
+            elif len(username) < 3:
                 errors.append("Login musi mieć co najmniej 3 znaki.")
 
-            from django.contrib.auth.models import User
             if User.objects.filter(username=username).exclude(id=user.id).exists():
                 errors.append("Taki login już istnieje.")
+
+            if not email:
+                errors.append("Email jest wymagany.")
+            elif not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+                errors.append("Podaj poprawny adres e-mail.")
+
+            # Walidacja telefonu (opcjonalny, ale jeśli podany — musi być poprawny)
+            if phone:
+                phone_digits = re.sub(r'[\s\-\+\(\)]', '', phone)
+                if not phone_digits.isdigit() or len(phone_digits) < 7 or len(phone_digits) > 15:
+                    errors.append("Podaj poprawny numer telefonu.")
+
+            # Walidacja kodu pocztowego (opcjonalny, ale jeśli podany — format XX-XXX)
+            if postal_code and not re.match(r'^\d{2}-\d{3}$', postal_code):
+                errors.append("Kod pocztowy musi być w formacie XX-XXX (np. 00-001).")
+
+            # Walidacja miejscowości (opcjonalna, ale jeśli podana — min 2 znaki)
+            if city and len(city) < 2:
+                errors.append("Miejscowość musi mieć co najmniej 2 znaki.")
 
             if errors:
                 return render(request, "accounts/panel.html", {
                     "errors": errors,
-                    "orders": orders
+                    "orders": orders,
+                    "stats": stats,
+                    "profile": profile,
+                    "days_since_last_order": days_since_last_order,
                 })
 
             user.username = username
@@ -160,12 +187,12 @@ def panel_view(request):
             user.save()
 
             # Save address and phone to profile
-            profile.street = request.POST.get("street", "").strip()
-            profile.house_number = request.POST.get("house_number", "").strip()
-            profile.apartment_number = request.POST.get("apartment_number", "").strip()
-            profile.postal_code = request.POST.get("postal_code", "").strip()
-            profile.city = request.POST.get("city", "").strip()
-            profile.phone = request.POST.get("phone", "").strip()
+            profile.street = street
+            profile.house_number = house_number
+            profile.apartment_number = apartment_number
+            profile.postal_code = postal_code
+            profile.city = city
+            profile.phone = phone
             profile.save()
 
             return redirect("panel")

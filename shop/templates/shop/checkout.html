@@ -63,6 +63,18 @@
 					</div>
 				</form>
 			</div>
+            <!-- Validation messages -->
+            {% if messages %}
+                <div class="checkout-messages mb-3">
+                    {% for message in messages %}
+                        <div class="checkout-alert checkout-alert-{{ message.tags }}">
+                            <i class="fa-solid {% if message.tags == 'error' %}fa-circle-exclamation{% elif message.tags == 'success' %}fa-check-circle{% else %}fa-info-circle{% endif %}"></i>
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
             <!-- Checkout form -->
             <div class="checkout-form-card">
                 <h5 class="checkout-section-title">
@@ -76,21 +88,21 @@
                         <label>Imię i nazwisko</label>
                         <input type="text" name="name" class="checkout-field" required
                                placeholder="Jan Kowalski"
-                               value="{% if user.is_authenticated %}{{ user.get_full_name|default:user.username }}{% endif %}">
+                               value="{% if form_data %}{{ form_data.name }}{% elif user.is_authenticated %}{{ user.get_full_name|default:user.username }}{% endif %}">
                     </div>
 
                     <div class="form-group">
                         <label>Adres e-mail</label>
                         <input type="email" name="email" class="checkout-field" required
                                placeholder="jan@email.com"
-                               value="{% if user.is_authenticated %}{{ user.email }}{% endif %}">
+                               value="{% if form_data %}{{ form_data.email }}{% elif user.is_authenticated %}{{ user.email }}{% endif %}">
                     </div>
 
                     <div class="form-group">
                         <label>Telefon</label>
                         <input type="tel" name="phone" class="checkout-field"
                                placeholder="+48 123 456 789"
-                               value="{% if user_profile %}{{ user_profile.phone }}{% endif %}">
+                               value="{% if form_data %}{{ form_data.phone }}{% elif user_profile %}{{ user_profile.phone }}{% endif %}">
                     </div>
                 </div>
 
@@ -103,7 +115,7 @@
                         <label>Ulica</label>
                         <input type="text" name="street" class="checkout-field" required
                                placeholder="Przykładowa"
-                               value="{% if user_profile %}{{ user_profile.street }}{% endif %}">
+                               value="{% if form_data %}{{ form_data.street }}{% elif user_profile %}{{ user_profile.street }}{% endif %}">
                     </div>
 
                     <div class="form-row">
@@ -111,13 +123,13 @@
                             <label>Nr domu</label>
                             <input type="text" name="house_number" class="checkout-field" required
                                    placeholder="12"
-                                   value="{% if user_profile %}{{ user_profile.house_number }}{% endif %}">
+                                   value="{% if form_data %}{{ form_data.house_number }}{% elif user_profile %}{{ user_profile.house_number }}{% endif %}">
                         </div>
                         <div class="form-group form-half">
                             <label>Nr mieszkania</label>
                             <input type="text" name="apartment_number" class="checkout-field"
                                    placeholder="4 (opcjonalne)"
-                                   value="{% if user_profile %}{{ user_profile.apartment_number }}{% endif %}">
+                                   value="{% if form_data %}{{ form_data.apartment_number }}{% elif user_profile %}{{ user_profile.apartment_number }}{% endif %}">
                         </div>
                     </div>
 
@@ -126,13 +138,13 @@
                             <label>Kod pocztowy</label>
                             <input type="text" name="postal_code" class="checkout-field" required
                                    placeholder="00-001"
-                                   value="{% if user_profile %}{{ user_profile.postal_code }}{% endif %}">
+                                   value="{% if form_data %}{{ form_data.postal_code }}{% elif user_profile %}{{ user_profile.postal_code }}{% endif %}">
                         </div>
                         <div class="form-group" style="flex: 1;">
                             <label>Miejscowość</label>
                             <input type="text" name="city" class="checkout-field" required
                                    placeholder="Warszawa"
-                                   value="{% if user_profile %}{{ user_profile.city }}{% endif %}">
+                                   value="{% if form_data %}{{ form_data.city }}{% elif user_profile %}{{ user_profile.city }}{% endif %}">
                         </div>
                     </div>
                 </div>

@@ -3,10 +3,57 @@ from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from decimal import Decimal
+import re
 from .models import (
     Product, Category, Tag, Order, OrderItem,
     Review, Favorite, ProductInquiry, DiscountCode
 )
+
+
+def validate_checkout_fields(post_data):
+    """Walidacja pól formularza zamówienia. Zwraca listę błędów."""
+    errors = []
+
+    name = post_data.get('name', '').strip()
+    email = post_data.get('email', '').strip()
+    phone = post_data.get('phone', '').strip()
+    street = post_data.get('street', '').strip()
+    house_number = post_data.get('house_number', '').strip()
+    postal_code = post_data.get('postal_code', '').strip()
+    city = post_data.get('city', '').strip()
+
+    if not name:
+        errors.append('Imię i nazwisko jest wymagane.')
+    elif len(name) < 3:
+        errors.append('Imię i nazwisko musi mieć co najmniej 3 znaki.')
+
+    if not email:
+        errors.append('Adres e-mail jest wymagany.')
+    elif not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+        errors.append('Podaj poprawny adres e-mail.')
+
+    if phone:
+        phone_digits = re.sub(r'[\s\-\+\(\)]', '', phone)
+        if not phone_digits.isdigit() or len(phone_digits) < 7 or len(phone_digits) > 15:
+            errors.append('Podaj poprawny numer telefonu.')
+
+    if not street:
+        errors.append('Ulica jest wymagana.')
+
+    if not house_number:
+        errors.append('Numer domu jest wymagany.')
+
+    if not postal_code:
+        errors.append('Kod pocztowy jest wymagany.')
+    elif not re.match(r'^\d{2}-\d{3}$', postal_code):
+        errors.append('Kod pocztowy musi być w formacie XX-XXX (np. 00-001).')
+
+    if not city:
+        errors.append('Miejscowość jest wymagana.')
+    elif len(city) < 2:
+        errors.append('Miejscowość musi mieć co najmniej 2 znaki.')
+
+    return errors
 
 def get_cart_count(request):
     cart = request.session.get('cart', {})
@@ -430,8 +477,31 @@ def checkout(request):
             return redirect('checkout')
 
         if action == 'place_order':
-            name = request.POST.get('name')
-            email = request.POST.get('email')
+            name = request.POST.get('name', '').strip()
+            email = request.POST.get('email', '').strip()
+
+            # Walidacja pól formularza
+            validation_errors = validate_checkout_fields(request.POST)
+            if validation_errors:
+                for error in validation_errors:
+                    messages.error(request, error)
+
+                # Get user profile for address auto-fill
+                user_profile = None
+                if request.user.is_authenticated:
+                    from accounts.models import UserProfile
+                    user_profile, _ = UserProfile.objects.get_or_create(user=request.user)
+
+                return render(request, 'shop/checkout.html', {
+                    'cart_items': cart_items,
+                    'total': total,
+                    'discount_code': discount_code,
+                    'discount_amount': discount_amount,
+                    'final_total': final_total,
+                    'user_profile': user_profile,
+                    'cart_count': get_cart_count(request),
+                    'form_data': request.POST,
+                })
 
             discount_code, discount_amount, final_total = get_applied_discount(request, total)
 
@@ -442,12 +512,12 @@ def checkout(request):
                 total_price=final_total,
                 customer_name=name,
                 customer_email=email,
-                customer_phone=request.POST.get('phone', ''),
-                shipping_street=request.POST.get('street', ''),
-                shipping_house=request.POST.get('house_number', ''),
-                shipping_apartment=request.POST.get('apartment_number', ''),
-                shipping_postal_code=request.POST.get('postal_code', ''),
-                shipping_city=request.POST.get('city', ''),
+                customer_phone=request.POST.get('phone', '').strip(),
+                shipping_street=request.POST.get('street', '').strip(),
+                shipping_house=request.POST.get('house_number', '').strip(),
+                shipping_apartment=request.POST.get('apartment_number', '').strip(),
+                shipping_postal_code=request.POST.get('postal_code', '').strip(),
+                shipping_city=request.POST.get('city', '').strip(),
                 payment_method=request.POST.get('payment_method', 'transfer'),
                 user=request.user if request.user.is_authenticated else None
             )
