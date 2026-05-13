@@ -132,15 +132,20 @@
                     </div>
 
                     <div class="detail-actions">
-                        {% if product.stock > 0 %}
-                            <a href="{% url 'add_to_cart' product.id %}" class="btn-add-cart">
-                                <i class="fa-solid fa-cart-plus"></i> Dodaj do koszyka
-                            </a>
-                        {% endif %}
-                        <button class="btn-inquiry" data-bs-toggle="modal" data-bs-target="#inquiryModal">
-                            <i class="fa-solid fa-envelope"></i> Zapytaj o produkt
-                        </button>
-                    </div>
+						{% if product.stock > 0 %}
+							<a href="{% url 'add_to_cart' product.id %}" class="btn-add-cart">
+								<i class="fa-solid fa-cart-plus"></i> Dodaj do koszyka
+							</a>
+						{% endif %}
+
+						<a href="{% url 'add_to_compare' product.id %}" class="btn-compare-detail">
+							<i class="fa-solid fa-scale-balanced"></i> Porównaj
+						</a>
+
+						<button class="btn-inquiry" data-bs-toggle="modal" data-bs-target="#inquiryModal">
+							<i class="fa-solid fa-envelope"></i> Zapytaj o produkt
+						</button>
+					</div>
                 </div>
             </div>
         </div>

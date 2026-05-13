@@ -2,6 +2,9 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.db.models import Sum, Count, F, DecimalField, ExpressionWrapper
+from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.models import User
 from decimal import Decimal
 import re
 from .models import (
@@ -574,4 +577,149 @@ def my_orders(request):
     return render(request, 'shop/my_orders.html', {
         'orders': orders,
         'cart_count': get_cart_count(request),
+    })
+    
+@staff_member_required
+def admin_stats(request):
+    total_orders = Order.objects.count()
+    completed_orders = Order.objects.filter(status='completed').count()
+    pending_orders = Order.objects.filter(status='pending').count()
+    processing_orders = Order.objects.filter(status='processing').count()
+
+    total_revenue = Order.objects.aggregate(
+        total=Sum('total_price')
+    )['total'] or Decimal('0.00')
+
+    total_original_revenue = Order.objects.aggregate(
+        total=Sum('original_total')
+    )['total'] or Decimal('0.00')
+
+    total_discount = Order.objects.aggregate(
+        total=Sum('discount_amount')
+    )['total'] or Decimal('0.00')
+
+    total_products = Product.objects.count()
+    active_products = Product.objects.filter(is_active=True).count()
+    low_stock_products = Product.objects.filter(stock__lte=5).order_by('stock')[:8]
+
+    total_users = User.objects.count()
+    total_reviews = Review.objects.count()
+
+    latest_orders = Order.objects.select_related(
+        'user', 'discount_code'
+    ).order_by('-created_at')[:8]
+
+    best_selling_products = OrderItem.objects.values(
+        'product__id',
+        'product__name'
+    ).annotate(
+        sold_quantity=Sum('quantity'),
+        revenue=Sum(
+            ExpressionWrapper(
+                F('quantity') * F('price'),
+                output_field=DecimalField(max_digits=10, decimal_places=2)
+            )
+        )
+    ).order_by('-sold_quantity')[:8]
+
+    status_stats = [
+        {
+            'label': 'Oczekujące',
+            'count': pending_orders,
+            'class': 'pending',
+        },
+        {
+            'label': 'W realizacji',
+            'count': processing_orders,
+            'class': 'processing',
+        },
+        {
+            'label': 'Zrealizowane',
+            'count': completed_orders,
+            'class': 'completed',
+        },
+    ]
+
+    discount_stats = DiscountCode.objects.annotate(
+        order_count=Count('orders')
+    ).order_by('-used_count')[:8]
+
+    return render(request, 'shop/admin_stats.html', {
+        'total_orders': total_orders,
+        'completed_orders': completed_orders,
+        'pending_orders': pending_orders,
+        'processing_orders': processing_orders,
+        'total_revenue': total_revenue,
+        'total_original_revenue': total_original_revenue,
+        'total_discount': total_discount,
+        'total_products': total_products,
+        'active_products': active_products,
+        'low_stock_products': low_stock_products,
+        'total_users': total_users,
+        'total_reviews': total_reviews,
+        'latest_orders': latest_orders,
+        'best_selling_products': best_selling_products,
+        'status_stats': status_stats,
+        'discount_stats': discount_stats,
+        'cart_count': get_cart_count(request),
+    })
+    
+def get_compare_count(request):
+    compare = request.session.get('compare', [])
+    return len(compare)
+
+
+def add_to_compare(request, id):
+    product = get_object_or_404(Product, id=id, is_active=True)
+
+    compare = request.session.get('compare', [])
+
+    if id not in compare:
+        if len(compare) >= 4:
+            messages.error(request, 'Możesz porównać maksymalnie 4 produkty.')
+        else:
+            compare.append(id)
+            request.session['compare'] = compare
+            request.session.modified = True
+            messages.success(request, f'Dodano produkt "{product.name}" do porównania.')
+    else:
+        messages.info(request, 'Ten produkt jest już w porównaniu.')
+
+    return redirect(request.META.get('HTTP_REFERER', 'product_list'))
+
+
+def remove_from_compare(request, id):
+    compare = request.session.get('compare', [])
+
+    if id in compare:
+        compare.remove(id)
+        request.session['compare'] = compare
+        request.session.modified = True
+        messages.success(request, 'Usunięto produkt z porównania.')
+
+    return redirect('compare_products')
+
+
+def clear_compare(request):
+    request.session['compare'] = []
+    request.session.modified = True
+    messages.success(request, 'Wyczyszczono porównywarkę.')
+
+    return redirect('compare_products')
+
+
+def compare_products(request):
+    compare_ids = request.session.get('compare', [])
+
+    products = Product.objects.filter(
+        id__in=compare_ids,
+        is_active=True
+    ).select_related('category', 'requirements').prefetch_related('tags', 'reviews')
+
+    products = sorted(products, key=lambda product: compare_ids.index(product.id))
+
+    return render(request, 'shop/compare.html', {
+        'products': products,
+        'cart_count': get_cart_count(request),
+        'compare_count': len(compare_ids),
     })

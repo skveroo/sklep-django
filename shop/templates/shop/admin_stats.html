@@ -1,0 +1,224 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Panel statystyk{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="stats-header">
+        <div>
+            <h1 class="page-title">
+                <i class="fa-solid fa-chart-line"></i> Panel statystyk
+            </h1>
+            <p class="stats-subtitle">
+                Podsumowanie sprzedaży, produktów i aktywności w sklepie.
+            </p>
+        </div>
+
+        <a href="/admin/" class="btn-admin-panel">
+            <i class="fa-solid fa-screwdriver-wrench"></i> Panel Django Admin
+        </a>
+    </div>
+
+    <div class="stats-summary-card mt-4">
+        <div class="stats-summary-row">
+            <span class="stats-summary-label">
+                <i class="fa-solid fa-receipt"></i>
+                Zamówienia:
+            </span>
+            <strong class="stats-summary-value">{{ total_orders }}</strong>
+        </div>
+
+        <div class="stats-summary-row">
+            <span class="stats-summary-label">
+                <i class="fa-solid fa-coins"></i>
+                Przychód:
+            </span>
+            <strong class="stats-summary-value">{{ total_revenue|floatformat:2 }} zł</strong>
+        </div>
+
+        <div class="stats-summary-row">
+            <span class="stats-summary-label">
+                <i class="fa-solid fa-box"></i>
+                Produkty aktywne:
+            </span>
+            <strong class="stats-summary-value">{{ active_products }} / {{ total_products }}</strong>
+        </div>
+
+        <div class="stats-summary-row">
+            <span class="stats-summary-label">
+                <i class="fa-solid fa-users"></i>
+                Użytkownicy:
+            </span>
+            <strong class="stats-summary-value">{{ total_users }}</strong>
+        </div>
+
+        <div class="stats-summary-row">
+            <span class="stats-summary-label">
+                <i class="fa-solid fa-ticket"></i>
+                Łączny rabat:
+            </span>
+            <strong class="stats-summary-value">{{ total_discount|floatformat:2 }} zł</strong>
+        </div>
+
+        <div class="stats-summary-row">
+            <span class="stats-summary-label">
+                <i class="fa-solid fa-star"></i>
+                Recenzje:
+            </span>
+            <strong class="stats-summary-value">{{ total_reviews }}</strong>
+        </div>
+    </div>
+
+    <div class="row g-4 mt-4">
+        <div class="col-lg-6">
+            <div class="stats-section-card">
+                <h5 class="stats-section-title">
+                    <i class="fa-solid fa-chart-pie"></i> Statusy zamówień
+                </h5>
+
+                {% for item in status_stats %}
+                    <div class="status-stat-row">
+                        <span class="order-status-badge status-{{ item.class }}">
+                            {{ item.label }}
+                        </span>
+                        <strong>{{ item.count }}</strong>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="stats-section-card">
+                <h5 class="stats-section-title">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Niski stan magazynowy
+                </h5>
+
+                {% for product in low_stock_products %}
+                    <div class="stats-list-row">
+                        <a href="{% url 'product_detail' product.id %}">
+                            {{ product.name }}
+                        </a>
+                        <span class="stock-warning">{{ product.stock }} szt.</span>
+                    </div>
+                {% empty %}
+                    <p class="stats-empty">Brak produktów z niskim stanem magazynowym.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mt-2">
+        <div class="col-lg-6">
+            <div class="stats-section-card">
+                <h5 class="stats-section-title">
+                    <i class="fa-solid fa-ranking-star"></i> Najlepiej sprzedające się produkty
+                </h5>
+
+                {% for product in best_selling_products %}
+                    <div class="stats-list-row">
+                        <span>{{ product.product__name }}</span>
+                        <span class="stats-money">
+                            {{ product.sold_quantity }} szt. / {{ product.revenue|floatformat:2 }} zł
+                        </span>
+                    </div>
+                {% empty %}
+                    <p class="stats-empty">Brak danych sprzedażowych.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="stats-section-card">
+                <h5 class="stats-section-title">
+                    <i class="fa-solid fa-ticket"></i> Kody rabatowe
+                </h5>
+
+                {% for code in discount_stats %}
+                    <div class="stats-list-row">
+                        <span>
+                            <strong>{{ code.code }}</strong>
+                            {% if not code.is_active %}
+                                <span class="inactive-label">nieaktywny</span>
+                            {% endif %}
+                        </span>
+                        <span>{{ code.used_count }} użyć</span>
+                    </div>
+                {% empty %}
+                    <p class="stats-empty">Brak kodów rabatowych.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+               <div class="stats-section-card stats-orders-card mt-4">
+        <h5 class="stats-section-title">
+            <i class="fa-solid fa-clock-rotate-left"></i> Ostatnie zamówienia
+        </h5>
+
+        <div class="stats-table-wrapper">
+            <table class="stats-table stats-orders-table">
+
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Klient</th>
+                        <th>Status</th>
+                        <th>Kod rabatowy</th>
+                        <th>Rabat</th>
+                        <th>Kwota</th>
+                        <th>Data</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for order in latest_orders %}
+                        <tr>
+                            <td class="order-id-cell">#{{ order.id }}</td>
+
+                            <td>
+                                {% if order.customer_name %}
+                                    {{ order.customer_name }}
+                                {% elif order.user %}
+                                    {{ order.user.username }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                <span class="order-status-badge status-{{ order.status }}">
+                                    {{ order.get_status_display }}
+                                </span>
+                            </td>
+
+                            <td>
+                                {% if order.discount_code %}
+                                    {{ order.discount_code.code }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+
+                            <td class="money-cell">
+                                {{ order.discount_amount|floatformat:2 }} zł
+                            </td>
+
+                            <td class="money-cell">
+                                <strong>{{ order.total_price|floatformat:2 }} zł</strong>
+                            </td>
+
+                            <td>
+                                {{ order.created_at|date:"d.m.Y H:i" }}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7">Brak zamówień.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

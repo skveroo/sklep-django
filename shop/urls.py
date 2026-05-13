@@ -25,4 +25,9 @@ urlpatterns = [
     # Checkout & Orders
     path('checkout/', views.checkout, name='checkout'),
     path('my-orders/', views.my_orders, name='my_orders'),
+    path('admin-stats/', views.admin_stats, name='admin_stats'),
+    path('compare/', views.compare_products, name='compare_products'),
+    path('compare/add/<int:id>/', views.add_to_compare, name='add_to_compare'),
+    path('compare/remove/<int:id>/', views.remove_from_compare, name='remove_from_compare'),
+    path('compare/clear/', views.clear_compare, name='clear_compare'),
 ]

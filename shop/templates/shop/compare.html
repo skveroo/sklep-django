@@ -1,0 +1,225 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Porównanie produktów{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="compare-header">
+        <div>
+            <h1 class="page-title">
+                <i class="fa-solid fa-scale-balanced"></i> Porównanie produktów
+            </h1>
+            <p class="compare-subtitle">
+                Zestaw produkty obok siebie i sprawdź różnice w cenie, dostępności, ocenach i wymaganiach.
+            </p>
+        </div>
+
+        {% if products %}
+            <a href="{% url 'clear_compare' %}" class="compare-clear-btn">
+                <i class="fa-solid fa-trash"></i> Wyczyść
+            </a>
+        {% endif %}
+    </div>
+
+    {% if products %}
+        <div class="compare-table-wrapper mt-4">
+            <table class="compare-table">
+                <tbody>
+                    <tr>
+                        <th>Produkt</th>
+                        {% for product in products %}
+                            <td>
+                                <div class="compare-product-head">
+                                    <a href="{% url 'remove_from_compare' product.id %}" class="compare-remove" title="Usuń z porównania">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </a>
+
+                                    <a href="{% url 'product_detail' product.id %}">
+                                        {% if product.image %}
+                                            <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                                        {% else %}
+                                            <div class="compare-placeholder">
+                                                <i class="fa-regular fa-image"></i>
+                                            </div>
+                                        {% endif %}
+                                    </a>
+
+                                    <h3>
+                                        <a href="{% url 'product_detail' product.id %}">
+                                            {{ product.name }}
+                                        </a>
+                                    </h3>
+                                </div>
+                            </td>
+                        {% endfor %}
+                    </tr>
+
+                    <tr>
+                        <th>Cena</th>
+                        {% for product in products %}
+                            <td class="compare-price">{{ product.price }} zł</td>
+                        {% endfor %}
+                    </tr>
+
+                    <tr>
+                        <th>Kategoria</th>
+                        {% for product in products %}
+                            <td>
+                                {% if product.category %}
+                                    {{ product.category.name }}
+                                {% else %}
+                                    Brak
+                                {% endif %}
+                            </td>
+                        {% endfor %}
+                    </tr>
+
+                    <tr>
+                        <th>Dostępność</th>
+                        {% for product in products %}
+                            <td>
+                                {% if product.stock > 0 %}
+                                    <span class="compare-stock in-stock">
+                                        <i class="fa-solid fa-check"></i> Dostępny - {{ product.stock }} szt.
+                                    </span>
+                                {% else %}
+                                    <span class="compare-stock out-of-stock">
+                                        <i class="fa-solid fa-xmark"></i> Niedostępny
+                                    </span>
+                                {% endif %}
+                            </td>
+                        {% endfor %}
+                    </tr>
+
+                    <tr>
+                        <th>Ocena</th>
+                        {% for product in products %}
+                            <td>
+                                <div class="compare-rating">
+                                    {% with avg=product.average_rating %}
+                                        {% for i in "12345" %}
+                                            {% if forloop.counter <= avg %}
+                                                <i class="fa-solid fa-star"></i>
+                                            {% else %}
+                                                <i class="fa-regular fa-star"></i>
+                                            {% endif %}
+                                        {% endfor %}
+                                        <span>{{ avg }}</span>
+                                    {% endwith %}
+                                </div>
+                            </td>
+                        {% endfor %}
+                    </tr>
+
+                    <tr>
+                        <th>Tagi</th>
+                        {% for product in products %}
+                            <td>
+                                <div class="compare-tags">
+                                    {% for tag in product.tags.all %}
+                                        <span>{{ tag.name }}</span>
+                                    {% empty %}
+                                        Brak
+                                    {% endfor %}
+                                </div>
+                            </td>
+                        {% endfor %}
+                    </tr>
+
+                    <tr>
+                        <th>Procesor</th>
+                        {% for product in products %}
+                            <td>
+                                {% if product.requirements and product.requirements.processor %}
+                                    {{ product.requirements.processor }}
+                                {% else %}
+                                    Brak danych
+                                {% endif %}
+                            </td>
+                        {% endfor %}
+                    </tr>
+
+                    <tr>
+                        <th>RAM</th>
+                        {% for product in products %}
+                            <td>
+                                {% if product.requirements and product.requirements.ram %}
+                                    {{ product.requirements.ram }}
+                                {% else %}
+                                    Brak danych
+                                {% endif %}
+                            </td>
+                        {% endfor %}
+                    </tr>
+
+                    <tr>
+                        <th>Dysk</th>
+                        {% for product in products %}
+                            <td>
+                                {% if product.requirements and product.requirements.storage %}
+                                    {{ product.requirements.storage }}
+                                {% else %}
+                                    Brak danych
+                                {% endif %}
+                            </td>
+                        {% endfor %}
+                    </tr>
+
+                    <tr>
+                        <th>Karta graficzna</th>
+                        {% for product in products %}
+                            <td>
+                                {% if product.requirements and product.requirements.graphics %}
+                                    {{ product.requirements.graphics }}
+                                {% else %}
+                                    Brak danych
+                                {% endif %}
+                            </td>
+                        {% endfor %}
+                    </tr>
+
+                    <tr>
+                        <th>System</th>
+                        {% for product in products %}
+                            <td>
+                                {% if product.requirements and product.requirements.os %}
+                                    {{ product.requirements.os }}
+                                {% else %}
+                                    Brak danych
+                                {% endif %}
+                            </td>
+                        {% endfor %}
+                    </tr>
+
+                    <tr>
+                        <th>Akcje</th>
+                        {% for product in products %}
+                            <td>
+                                <div class="compare-actions">
+                                    <a href="{% url 'product_detail' product.id %}" class="compare-detail-btn">
+                                        <i class="fa-solid fa-eye"></i> Szczegóły
+                                    </a>
+
+                                    {% if product.stock > 0 %}
+                                        <a href="{% url 'add_to_cart' product.id %}" class="compare-cart-btn">
+                                            <i class="fa-solid fa-cart-plus"></i> Do koszyka
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        {% endfor %}
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="empty-state mt-5">
+            <i class="fa-solid fa-scale-balanced fa-3x"></i>
+            <p class="mt-3">Nie wybrano jeszcze produktów do porównania.</p>
+            <a href="{% url 'product_list' %}" class="btn-browse">
+                <i class="fa-solid fa-arrow-right"></i> Przeglądaj produkty
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

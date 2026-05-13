@@ -44,9 +44,8 @@
 					<i class="fa-solid fa-ticket"></i> Kod rabatowy
 				</h5>
 
-				<form method="POST">
+				<form method="POST" id="discountForm">
 					{% csrf_token %}
-					<input type="hidden" name="action" value="place_order">
 					<input type="hidden" name="action" value="apply_discount">
 
 					<div class="discount-code-row">
@@ -80,9 +79,9 @@
                 <h5 class="checkout-section-title">
                     <i class="fa-solid fa-user"></i> Twoje dane
                 </h5>
-                <form method="POST">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="place_order">
+				<form method="POST" id="orderForm">
+					{% csrf_token %}
+					<input type="hidden" name="action" value="place_order">
 
                     <div class="form-group">
                         <label>Imię i nazwisko</label>
@@ -190,7 +189,7 @@
                     <div class="form-group">
                         <label>Uwagi do zamówienia</label>
                         <textarea name="notes" class="checkout-field checkout-textarea"
-                                  placeholder="Opcjonalne uwagi..."></textarea>
+					placeholder="Opcjonalne uwagi...">{% if form_data %}{{ form_data.notes }}{% endif %}</textarea>
                     </div>
 
                     <div class="checkout-actions">
@@ -206,4 +205,104 @@
         </div>
     </div>
 </div>
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const storageKey = 'checkout_form_data';
+
+    const fieldNames = [
+        'name',
+        'email',
+        'phone',
+        'street',
+        'house_number',
+        'apartment_number',
+        'postal_code',
+        'city',
+        'payment_method',
+        'notes'
+    ];
+
+    function getCheckoutFields() {
+        return fieldNames
+            .map(function (name) {
+                return document.querySelector('[name="' + name + '"]');
+            })
+            .filter(function (field) {
+                return field !== null;
+            });
+    }
+
+    function saveCheckoutData() {
+        const data = {};
+
+        fieldNames.forEach(function (name) {
+            const fields = document.querySelectorAll('[name="' + name + '"]');
+
+            if (!fields.length) {
+                return;
+            }
+
+            if (fields[0].type === 'radio') {
+                const checked = document.querySelector('[name="' + name + '"]:checked');
+                if (checked) {
+                    data[name] = checked.value;
+                }
+            } else {
+                data[name] = fields[0].value;
+            }
+        });
+
+        localStorage.setItem(storageKey, JSON.stringify(data));
+    }
+
+    function restoreCheckoutData() {
+        const saved = localStorage.getItem(storageKey);
+
+        if (!saved) {
+            return;
+        }
+
+        const data = JSON.parse(saved);
+
+        Object.keys(data).forEach(function (name) {
+            const fields = document.querySelectorAll('[name="' + name + '"]');
+
+            if (!fields.length) {
+                return;
+            }
+
+            if (fields[0].type === 'radio') {
+                fields.forEach(function (field) {
+                    field.checked = field.value === data[name];
+                });
+            } else if (!fields[0].value) {
+                fields[0].value = data[name];
+            }
+        });
+    }
+
+    restoreCheckoutData();
+
+    getCheckoutFields().forEach(function (field) {
+        field.addEventListener('input', saveCheckoutData);
+        field.addEventListener('change', saveCheckoutData);
+    });
+
+    const discountForm = document.getElementById('discountForm');
+    if (discountForm) {
+        discountForm.addEventListener('submit', function () {
+            saveCheckoutData();
+        });
+    }
+
+    const orderForm = document.getElementById('orderForm');
+    if (orderForm) {
+        orderForm.addEventListener('submit', function () {
+            localStorage.removeItem(storageKey);
+        });
+    }
+});
+</script>
+{% endblock %}
 {% endblock %}

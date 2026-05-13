@@ -234,17 +234,17 @@
                                 {% endwith %}
                             </div>
 
-                            <div class="product-bottom">
-                                <span class="product-price">{{ product.price }} zł</span>
-                                <div class="product-actions">
-                                    <a href="{% url 'product_detail' product.id %}" class="btn-detail" title="Szczegóły">
-                                        <i class="fa-solid fa-eye"></i>
-                                    </a>
-                                    <a href="{% url 'add_to_cart' product.id %}" class="btn-cart" title="Do koszyka">
-                                        <i class="fa-solid fa-cart-plus"></i>
-                                    </a>
-                                </div>
-                            </div>
+                            <div class="product-actions">
+								<a href="{% url 'product_detail' product.id %}" class="btn-detail" title="Szczegóły">
+									<i class="fa-solid fa-eye"></i>
+								</a>
+								<a href="{% url 'add_to_cart' product.id %}" class="btn-cart" title="Do koszyka">
+									<i class="fa-solid fa-cart-plus"></i>
+								</a>
+								<a href="{% url 'add_to_compare' product.id %}" class="btn-compare" title="Porównaj">
+									<i class="fa-solid fa-scale-balanced"></i>
+								</a>
+							</div>
                         </div>
                     </div>
                 {% empty %}

@@ -36,7 +36,9 @@
                 Koszyk
                 <span class="cart-badge">{{ cart_count|default:0 }}</span>
             </a>
-
+			<a href="{% url 'compare_products' %}" class="nav-btn">
+				<i class="fa-solid fa-scale-balanced"></i> Porównaj
+			</a>
             {% if user.is_authenticated %}
                 <a href="{% url 'my_favorites' %}" class="nav-btn" title="Ulubione">
                     <i class="fa-solid fa-heart"></i>
@@ -44,6 +46,11 @@
                 <a href="{% url 'my_orders' %}" class="nav-btn">
                     <i class="fa-solid fa-box"></i> Zamówienia
                 </a>
+				{% if user.is_staff %}
+					<a href="{% url 'admin_stats' %}" class="nav-btn">
+						<i class="fa-solid fa-chart-line"></i> Statystyki
+					</a>
+				{% endif %}
                 <div class="nav-user">
                     <a href="{% url 'panel' %}" class="user-name">
                         <i class="fa-solid fa-user"></i> {{ user.username }}
@@ -77,6 +84,66 @@
     {% block content %}
     {% endblock %}
 </main>
+<footer class="shop-footer">
+    <div class="footer-container">
+        <div class="footer-columns">
+
+            <div class="footer-column">
+                <h5>Zamówienia</h5>
+                <a href="#">Dostawa i płatność</a>
+                <a href="#">Raty</a>
+                <a href="#">Zwroty</a>
+                <a href="#">Reklamacje</a>
+                <a href="#">Najczęściej zadawane pytania</a>
+            </div>
+
+            <div class="footer-column">
+                <h5>Promocje i inspiracje</h5>
+                <a href="{% url 'product_list' %}">Wyprzedaż</a>
+                <a href="{% url 'product_list' %}">Promocje</a>
+                <a href="{% url 'product_list' %}">Nowości</a>
+                <a href="{% url 'product_list' %}">Polecane produkty</a>
+                <a href="#">Blog</a>
+            </div>
+
+            <div class="footer-column">
+                <h5>Sklep</h5>
+                <a href="{% url 'home' %}">O nas</a>
+                <a href="#">Regulamin</a>
+                <a href="#">Polityka prywatności</a>
+                <a href="#">Polityka cookies</a>
+                <a href="{% url 'product_list' %}">Produkty</a>
+                {% if user.is_authenticated %}
+                    <a href="{% url 'my_orders' %}">Moje zamówienia</a>
+                    <a href="{% url 'my_favorites' %}">Ulubione</a>
+                {% endif %}
+            </div>
+
+            <div class="footer-column footer-contact">
+                <h5>Kontakt</h5>
+
+                <div class="footer-contact-row">
+                    <i class="fa-solid fa-envelope"></i>
+                    <span>kontakt@sklep.pl</span>
+                </div>
+
+                <div class="footer-socials">
+                    <a href="#" title="Facebook">
+                        <i class="fa-brands fa-facebook-f"></i>
+                    </a>
+                    <a href="#" title="Instagram">
+                        <i class="fa-brands fa-instagram"></i>
+                    </a>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="footer-bottom">
+            © Sklep 2026
+        </div>
+    </div>
+</footer>
 <div class="modal fade" id="cartAddedModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content inquiry-modal">
