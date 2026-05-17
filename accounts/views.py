@@ -39,10 +39,19 @@ def logout_view(request):
 
 def register_view(request):
     if request.method == "POST":
+
         username = request.POST.get("username", "").strip()
         email = request.POST.get("email", "").strip()
+
         password = request.POST.get("password", "")
         password2 = request.POST.get("password2", "")
+
+        street = request.POST.get("street", "").strip()
+        house_number = request.POST.get("house_number", "").strip()
+        apartment_number = request.POST.get("apartment_number", "").strip()
+        postal_code = request.POST.get("postal_code", "").strip()
+        city = request.POST.get("city", "").strip()
+        phone = request.POST.get("phone", "").strip()
 
         errors = []
 
@@ -50,11 +59,13 @@ def register_view(request):
             errors.append("Login nie może być pusty.")
         elif len(username) < 3:
             errors.append("Login musi mieć co najmniej 3 znaki.")
+
         if User.objects.filter(username=username).exists():
             errors.append("Użytkownik o tej nazwie już istnieje.")
 
         if not email:
             errors.append("Email jest wymagany.")
+
         if User.objects.filter(email=email).exists():
             errors.append("Email jest już zajęty.")
 
@@ -69,7 +80,14 @@ def register_view(request):
         if errors:
             return render(request, "accounts/register.html", {
                 "errors": errors,
-                "username": username
+                "username": username,
+                "email": email,
+                "street": street,
+                "house_number": house_number,
+                "apartment_number": apartment_number,
+                "postal_code": postal_code,
+                "city": city,
+                "phone": phone,
             })
 
         user = User.objects.create_user(
@@ -77,20 +95,35 @@ def register_view(request):
             email=email,
             password=password,
         )
+
         user.is_active = False
         user.save()
 
+        profile = user.profile
+
+        profile.street = street
+        profile.house_number = house_number
+        profile.apartment_number = apartment_number
+        profile.postal_code = postal_code
+        profile.city = city
+        profile.phone = phone
+
+        profile.save()
+
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = default_token_generator.make_token(user)
+
         domain = request.get_host()
-        print(uid, token)
+
         link = f"http://{domain}/accounts/activate/{uid}/{token}/"
 
         send_mail(
             subject="Weryfikacja nowego użytkownika",
-            message=(f"Cześć {username}!\n"
+            message=(
+                f"Cześć {username}!\n"
                 f"Aby aktywować swoje konto kliknij w link:\n"
-                f"{link}"),
+                f"{link}"
+            ),
             from_email="noreply@sklepdjango.pl",
             recipient_list=[email],
             fail_silently=False,

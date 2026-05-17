@@ -35,10 +35,9 @@
     </div>
 </nav>
 
-<!-- MAIN -->
 <main class="main-content d-flex justify-content-center align-items-center" style="min-height: 80vh;">
 
-    <div class="sidebar-card" style="width: 380px; margin: auto;">
+    <div class="sidebar-card" style="max-width: 900px; margin: auto;">
 
     <h5 class="sidebar-title text-center">
         <i class="fa-solid fa-user-plus"></i> Rejestracja
@@ -47,24 +46,108 @@
     <form method="post">
         {% csrf_token %}
 
-        <div class="filter-group">
-            <label>Login</label>
-            <input type="text" name="username" class="filter-field" required>
-        </div>
+        <div class="row">
 
-        <div class="filter-group">
-            <label>E-mail</label>
-            <input type="email" name="email" class="filter-field" required>
-        </div>
+            <!-- lewo -->
+            <div class="col-md-6">
 
-        <div class="filter-group">
-            <label>Hasło</label>
-            <input type="password" name="password" class="filter-field" required>
-        </div>
+                <div class="filter-group">
+                    <label>Login</label>
+                    <input type="text" name="username" class="filter-field" required>
+                </div>
 
-        <div class="filter-group">
-            <label>Powtórz hasło</label>
-            <input type="password" name="password2" class="filter-field" required>
+                <div class="filter-group">
+                    <label>E-mail</label>
+                    <input type="email" name="email" class="filter-field" required>
+                </div>
+
+                <div class="filter-group">
+                    <label>Hasło</label>
+                    <input type="password" name="password" class="filter-field" required>
+                </div>
+
+                <div class="filter-group">
+                    <label>Powtórz hasło</label>
+                    <input type="password" name="password2" class="filter-field" required>
+                </div>
+
+            </div>
+
+            <!-- prawo -->
+            <div class="col-md-6">
+
+                <div class="filter-group">
+                    <label>Ulica</label>
+                    <input type="text"
+                           name="street"
+                           value="{{ profile.street }}"
+                           class="filter-field"
+                           placeholder="Przykładowa">
+                </div>
+                
+                <div class="row g-2">
+                
+                    <div class="col-6">
+                        <div class="filter-group">
+                            <label>Nr domu</label>
+                            <input type="text"
+                                   name="house_number"
+                                   value="{{ profile.house_number }}"
+                                   class="filter-field"
+                                   placeholder="8">
+                        </div>
+                    </div>
+                
+                    <div class="col-6">
+                        <div class="filter-group">
+                            <label>Nr mieszkania</label>
+                            <input type="text"
+                                   name="apartment_number"
+                                   value="{{ profile.apartment_number }}"
+                                   class="filter-field"
+                                   placeholder="67">
+                        </div>
+                    </div>
+                
+                </div>
+                
+                <div class="row g-2">
+                
+                    <div class="col-4">
+                        <div class="filter-group">
+                            <label>Kod pocztowy</label>
+                            <input type="text"
+                                   name="postal_code"
+                                   value="{{ profile.postal_code }}"
+                                   class="filter-field"
+                                   placeholder="00-001">
+                        </div>
+                    </div>
+                
+                    <div class="col-8">
+                        <div class="filter-group">
+                            <label>Miejscowość</label>
+                            <input type="text"
+                                   name="city"
+                                   value="{{ profile.city }}"
+                                   class="filter-field"
+                                   placeholder="Warszawa">
+                        </div>
+                    </div>
+                
+                </div>
+                
+                <div class="filter-group">
+                    <label>Telefon</label>
+                    <input type="tel"
+                           name="phone"
+                           value="{{ profile.phone }}"
+                           class="filter-field"
+                           placeholder="+48 123 456 789">
+                </div>
+
+            </div>
+
         </div>
 
         {% if errors %}
@@ -77,7 +160,7 @@
             </div>
         {% endif %}
 
-        <button type="submit" class="filter-submit w-100 mt-2">
+        <button type="submit" class="filter-submit w-100 mt-3">
             Zarejestruj
         </button>
     </form>
