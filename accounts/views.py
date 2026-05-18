@@ -79,17 +79,12 @@ def register_view(request):
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = default_token_generator.make_token(user)
         domain = request.get_host()
-        link = f"http://{domain}/activate/{uid}/{token}"
+        link = f"http://{domain}/accounts/activate/{uid}/{token}"
 
-        text = (f"Cześć {username}!\n"
-                f"Aby aktywować swoje konto kliknij w link:\n"
-                f"{link}")
         send_mail(
-            subject="Weryfikacja nowego użytkownika",
-            message=(f"Cześć {username}!\n"
-                f"Aby aktywować swoje konto kliknij w link:\n"
-                f"{link}"),
-            from_email="sklep-django@o2.pl",
+            subject="Aktywuj swoje konto",
+            message=f"Cześć {username},\n\nAby aktywować konto, kliknij w link:\n{link}",
+            from_email="mineface98@gmail.com",
             recipient_list=[email],
             fail_silently=False,
         )
