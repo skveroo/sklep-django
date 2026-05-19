@@ -21,16 +21,26 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.http import HttpResponse
 
+
 def login_view(request):
     if request.method == "POST":
         username = request.POST["username"]
         password = request.POST["password"]
 
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            login(request, user)
-            return redirect("/")
-        else:
+        try:
+            user = User.objects.get(username=username)
+
+            if user.check_password(password):
+                if user.is_active:
+                    login(request, user)
+                    return redirect("/")
+                else:
+                    return render(request, "accounts/login.html",
+                                  {"error": "Konto nieaktywne. Sprawdź e-mail i kliknij w link aktywacyjny."})
+            else:
+                return render(request, "accounts/login.html", {"error": "Błędne dane"})
+
+        except User.DoesNotExist:
             return render(request, "accounts/login.html", {"error": "Błędne dane"})
 
     return render(request, "accounts/login.html")
@@ -39,7 +49,6 @@ def login_view(request):
 def logout_view(request):
     logout(request)
     return redirect("/")
-
 
 
 def register_view(request):
@@ -129,7 +138,7 @@ def register_view(request):
                 f"Aby aktywować swoje konto kliknij w link:\n"
                 f"{link}"
             ),
-            from_email="noreply@sklepdjango.pl",
+            from_email="mineface98@gmail.com",
             recipient_list=[email],
             fail_silently=False,
         )
