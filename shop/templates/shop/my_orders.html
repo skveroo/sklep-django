@@ -1,0 +1,72 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Moje zamówienia{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="page-title">
+        <i class="fa-solid fa-box"></i> Moje zamówienia
+    </h1>
+
+    {% if orders %}
+        <div class="orders-list mt-4">
+            {% for order in orders %}
+                <div class="order-card">
+                    <div class="order-header">
+                        <div class="order-id">
+                            <i class="fa-solid fa-receipt"></i>
+                            Zamówienie <strong>#{{ order.id }}</strong>
+                        </div>
+                        <span class="order-status-badge status-{{ order.status }}">
+                            {{ order.get_status_display }}
+                        </span>
+                    </div>
+
+                    <div class="order-body">
+                        <div class="order-info-grid">
+                            <div class="order-info-item">
+                                <span class="order-info-label">Data</span>
+                                <span class="order-info-value">{{ order.created_at|date:"d.m.Y, H:i" }}</span>
+                            </div>
+                            <div class="order-info-item">
+                                <span class="order-info-label">Kwota</span>
+                                <span class="order-info-value order-total">{{ order.total_price }} zł</span>
+                            </div>
+                            {% if order.customer_email %}
+                                <div class="order-info-item">
+                                    <span class="order-info-label">E-mail</span>
+                                    <span class="order-info-value">{{ order.customer_email }}</span>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Order items -->
+                        {% if order.items.all %}
+                            <div class="order-items-list">
+                                <span class="order-items-title">Produkty:</span>
+                                {% for item in order.items.all %}
+                                    <div class="order-item-row">
+                                        <a href="{% url 'product_detail' item.product.id %}" class="order-item-name">
+                                            {{ item.product.name }}
+                                        </a>
+                                        <span class="order-item-qty">× {{ item.quantity }}</span>
+                                        <span class="order-item-price">{{ item.price }} zł</span>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state mt-5">
+            <i class="fa-solid fa-box-open fa-3x"></i>
+            <p class="mt-3">Nie masz jeszcze żadnych zamówień.</p>
+            <a href="{% url 'product_list' %}" class="btn-browse">
+                <i class="fa-solid fa-arrow-right"></i> Przeglądaj produkty
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

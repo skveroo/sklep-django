@@ -1,0 +1,504 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}{{ product.name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav class="breadcrumb-nav">
+        <a href="{% url 'product_list' %}">Produkty</a>
+        {% if product.category %}
+            <i class="fa-solid fa-chevron-right"></i>
+            <a href="{% url 'product_list' %}?category={{ product.category.slug }}">{{ product.category.name }}</a>
+        {% endif %}
+        <i class="fa-solid fa-chevron-right"></i>
+        <span>{{ product.name }}</span>
+    </nav>
+
+    <div class="detail-card">
+        <div class="row g-4">
+            <!-- Left: Images -->
+            <div class="col-lg-6">
+<div class="detail-gallery">
+    <div class="gallery-main gallery-slider" id="productGallery">
+        {% if product.image or product.images.all %}
+            <button type="button" class="gallery-arrow gallery-arrow-left" onclick="prevGalleryImage()">
+                <i class="fa-solid fa-chevron-left"></i>
+            </button>
+
+            <img
+                src="{% if product.image %}{{ product.image.url }}{% else %}{{ product.images.all.0.image.url }}{% endif %}"
+                alt="{{ product.name }}"
+                id="mainGalleryImg"
+            >
+
+            <button type="button" class="gallery-arrow gallery-arrow-right" onclick="nextGalleryImage()">
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
+
+            <div class="gallery-counter">
+                <span id="galleryCurrent">1</span> / <span id="galleryTotal">1</span>
+            </div>
+        {% else %}
+            <div class="product-placeholder detail-placeholder">
+                <i class="fa-regular fa-image fa-4x"></i>
+            </div>
+        {% endif %}
+    </div>
+
+    {% if product.image or product.images.all %}
+        <div class="gallery-thumbs" id="galleryThumbs">
+            {% if product.image %}
+                <button
+                    type="button"
+                    class="thumb active"
+                    data-image="{{ product.image.url }}"
+                    data-index="0"
+                    onclick="setGalleryImage(0)"
+                >
+                    <img src="{{ product.image.url }}" alt="Okładka">
+                </button>
+            {% endif %}
+
+            {% for img in product.images.all %}
+                <button
+                    type="button"
+                    class="thumb"
+                    data-image="{{ img.image.url }}"
+                    data-index="{% if product.image %}{{ forloop.counter }}{% else %}{{ forloop.counter0 }}{% endif %}"
+                    onclick="setGalleryImage({% if product.image %}{{ forloop.counter }}{% else %}{{ forloop.counter0 }}{% endif %})"
+                >
+                    <img src="{{ img.image.url }}" alt="{{ img.caption|default:product.name }}">
+                </button>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+            </div>
+
+            <!-- Right: Info -->
+            <div class="col-lg-6">
+                <div class="detail-info">
+                    <div class="detail-header">
+                        <h1 class="detail-title">{{ product.name }}</h1>
+
+                        {% if user.is_authenticated %}
+                            <a href="{% url 'toggle_favorite' product.id %}"
+                               class="detail-fav {% if is_favorite %}active{% endif %}"
+                               title="{% if is_favorite %}Usuń z ulubionych{% else %}Dodaj do ulubionych{% endif %}">
+                                <i class="fa-{% if is_favorite %}solid{% else %}regular{% endif %} fa-heart"></i>
+                            </a>
+                        {% endif %}
+                    </div>
+
+                    {% if product.category %}
+                        <a href="{% url 'product_list' %}?category={{ product.category.slug }}" class="detail-category">
+                            {{ product.category.name }}
+                        </a>
+                    {% endif %}
+
+                    <!-- Rating summary -->
+                    <div class="detail-rating">
+                        {% for i in "12345" %}
+                            {% if forloop.counter <= avg_rating %}
+                                <i class="fa-solid fa-star"></i>
+                            {% else %}
+                                <i class="fa-regular fa-star"></i>
+                            {% endif %}
+                        {% endfor %}
+                        <span class="rating-value">{{ avg_rating }}</span>
+                        <span class="rating-count">({{ reviews.count }} recenzji)</span>
+                    </div>
+
+                    <!-- Tags -->
+                    {% if product.tags.all %}
+                        <div class="detail-tags">
+                            {% for tag in product.tags.all %}
+                                <a href="{% url 'product_list' %}?tag={{ tag.slug }}" class="tag-pill">
+                                    {{ tag.name }}
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <div class="detail-price-block">
+                        <span class="detail-price">{{ product.price }} zł</span>
+                        <span class="detail-stock {% if product.stock > 0 %}in-stock{% else %}out-of-stock{% endif %}">
+                            {% if product.stock > 0 %}
+                                <i class="fa-solid fa-check"></i> Dostępny ({{ product.stock }} szt.)
+                            {% else %}
+                                <i class="fa-solid fa-xmark"></i> Niedostępny
+                            {% endif %}
+                        </span>
+                    </div>
+
+                    <div class="detail-actions">
+						{% if product.stock > 0 %}
+							<a href="{% url 'add_to_cart' product.id %}" class="btn-add-cart">
+								<i class="fa-solid fa-cart-plus"></i> Dodaj do koszyka
+							</a>
+						{% endif %}
+
+						<a href="{% url 'add_to_compare' product.id %}" class="btn-compare-detail">
+							<i class="fa-solid fa-scale-balanced"></i> Porównaj
+						</a>
+
+						<button class="btn-inquiry" data-bs-toggle="modal" data-bs-target="#inquiryModal">
+							<i class="fa-solid fa-envelope"></i> Zapytaj o produkt
+						</button>
+					</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs: Description / Requirements / Reviews -->
+    <div class="detail-tabs mt-4">
+        <div class="tab-nav">
+            <button class="tab-btn active" onclick="switchTab('description', this)">
+                <i class="fa-solid fa-align-left"></i> Opis
+            </button>
+            <button class="tab-btn" onclick="switchTab('requirements', this)">
+                <i class="fa-solid fa-microchip"></i> Wymagania sprzętowe
+            </button>
+            <button class="tab-btn" onclick="switchTab('reviews', this)">
+                <i class="fa-solid fa-star-half-stroke"></i> Recenzje
+                <span class="tab-badge">{{ reviews.count }}</span>
+            </button>
+        </div>
+
+        <!-- Description Tab -->
+        <div class="tab-content active" id="tab-description">
+            <div class="tab-body">
+                {% if product.description %}
+                    <div class="description-text">{{ product.description|linebreaksbr }}</div>
+                {% else %}
+                    <p class="text-muted-custom">Brak opisu produktu.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Requirements Tab -->
+        <div class="tab-content" id="tab-requirements">
+            <div class="tab-body">
+                {% if product.requirements %}
+                    <table class="req-table">
+                        {% if product.requirements.processor %}
+                            <tr><th><i class="fa-solid fa-microchip"></i> Procesor</th><td>{{ product.requirements.processor }}</td></tr>
+                        {% endif %}
+                        {% if product.requirements.ram %}
+                            <tr><th><i class="fa-solid fa-memory"></i> RAM</th><td>{{ product.requirements.ram }}</td></tr>
+                        {% endif %}
+                        {% if product.requirements.storage %}
+                            <tr><th><i class="fa-solid fa-hard-drive"></i> Dysk</th><td>{{ product.requirements.storage }}</td></tr>
+                        {% endif %}
+                        {% if product.requirements.graphics %}
+                            <tr><th><i class="fa-solid fa-display"></i> Karta graficzna</th><td>{{ product.requirements.graphics }}</td></tr>
+                        {% endif %}
+                        {% if product.requirements.os %}
+                            <tr><th><i class="fa-brands fa-windows"></i> System</th><td>{{ product.requirements.os }}</td></tr>
+                        {% endif %}
+                        {% if product.requirements.additional %}
+                            <tr><th><i class="fa-solid fa-circle-info"></i> Dodatkowe</th><td>{{ product.requirements.additional }}</td></tr>
+                        {% endif %}
+                    </table>
+                {% else %}
+                    <p class="text-muted-custom">Brak informacji o wymaganiach sprzętowych.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Reviews Tab -->
+        <div class="tab-content" id="tab-reviews">
+            <div class="tab-body">
+                <!-- Review summary -->
+                <div class="review-summary">
+                    <div class="review-avg">
+                        <span class="avg-number">{{ avg_rating }}</span>
+                        <div class="avg-stars">
+                            {% for i in "12345" %}
+                                {% if forloop.counter <= avg_rating %}
+                                    <i class="fa-solid fa-star"></i>
+                                {% else %}
+                                    <i class="fa-regular fa-star"></i>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <span class="avg-count">na podstawie {{ reviews.count }} recenzji</span>
+                    </div>
+                </div>
+
+                <!-- Add review form -->
+                {% if user.is_authenticated and has_purchased and not has_reviewed %}
+                    <div class="review-form-card">
+                        <h5><i class="fa-solid fa-pen"></i> Napisz recenzję</h5>
+                        <form method="post" action="{% url 'add_review' product.id %}">
+                            {% csrf_token %}
+                            <div class="star-rating-input">
+                                <label>Twoja ocena:</label>
+                                <div class="star-select" id="starSelect">
+                                    {% for i in "12345" %}
+                                        <i class="fa-regular fa-star" data-rating="{{ forloop.counter }}"
+                                           onclick="setRating({{ forloop.counter }})"></i>
+                                    {% endfor %}
+                                </div>
+                                <input type="hidden" name="rating" id="ratingInput" required>
+                            </div>
+                            <div class="form-group">
+                                <textarea name="comment" class="review-textarea"
+                                          placeholder="Podziel się swoją opinią..." required></textarea>
+                            </div>
+                            <button type="submit" class="btn-submit-review">
+                                <i class="fa-solid fa-paper-plane"></i> Wyślij recenzję
+                            </button>
+                        </form>
+                    </div>
+                {% elif user.is_authenticated and has_reviewed %}
+                    <div class="review-notice">
+                        <i class="fa-solid fa-check-circle"></i> Już wystawiłeś recenzję tego produktu.
+                    </div>
+                {% elif user.is_authenticated and not has_purchased %}
+                    <div class="review-notice">
+                        <i class="fa-solid fa-info-circle"></i> Recenzje mogą wystawiać tylko kupujący.
+                    </div>
+                {% else %}
+                    <div class="review-notice">
+                        <a href="{% url 'login' %}">Zaloguj się</a>, aby wystawić recenzję.
+                    </div>
+                {% endif %}
+
+                <!-- Reviews list -->
+                <div class="reviews-list">
+                    {% for review in reviews %}
+                        <div class="review-item">
+                            <div class="review-header">
+                                <div class="review-user">
+                                    <i class="fa-solid fa-user-circle"></i>
+                                    <strong>{{ review.user.username }}</strong>
+                                </div>
+                                <div class="review-stars">
+                                    {% for i in "12345" %}
+                                        {% if forloop.counter <= review.rating %}
+                                            <i class="fa-solid fa-star"></i>
+                                        {% else %}
+                                            <i class="fa-regular fa-star"></i>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                                <span class="review-date">{{ review.created_at|date:"d.m.Y" }}</span>
+                            </div>
+                            <p class="review-comment">{{ review.comment }}</p>
+                        </div>
+                    {% empty %}
+                        <div class="empty-state small-empty">
+                            <i class="fa-regular fa-comment-dots fa-2x"></i>
+                            <p>Brak recenzji. Bądź pierwszy!</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Inquiry Modal -->
+<div class="modal fade" id="inquiryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content inquiry-modal">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fa-solid fa-envelope"></i> Zapytaj o: {{ product.name }}
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'product_inquiry' product.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Imię</label>
+                        <input type="text" name="name" class="inquiry-field" required
+                               value="{% if user.is_authenticated %}{{ user.username }}{% endif %}">
+                    </div>
+                    <div class="form-group">
+                        <label>E-mail</label>
+                        <input type="email" name="email" class="inquiry-field" required
+                               value="{% if user.is_authenticated %}{{ user.email }}{% endif %}">
+                    </div>
+                    <div class="form-group">
+                        <label>Wiadomość</label>
+                        <textarea name="message" class="inquiry-field inquiry-textarea" required
+                                  placeholder="Napisz swoje pytanie..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" data-bs-dismiss="modal">Anuluj</button>
+                    <button type="submit" class="btn-send-inquiry">
+                        <i class="fa-solid fa-paper-plane"></i> Wyślij
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let galleryImages = [];
+    let currentGalleryIndex = 0;
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const thumbs = document.querySelectorAll('#galleryThumbs .thumb');
+
+        galleryImages = Array.from(thumbs).map(function (thumb) {
+            return thumb.dataset.image;
+        });
+
+        const totalElement = document.getElementById('galleryTotal');
+        if (totalElement) {
+            totalElement.textContent = galleryImages.length;
+        }
+
+        const currentElement = document.getElementById('galleryCurrent');
+        if (currentElement && galleryImages.length > 0) {
+            currentElement.textContent = 1;
+        }
+
+        updateGalleryButtons();
+    });
+
+function setGalleryImage(index, forcedDirection) {
+    if (!galleryImages.length || index === currentGalleryIndex) {
+        return;
+    }
+
+    const mainImage = document.getElementById('mainGalleryImg');
+
+    if (!mainImage) {
+        return;
+    }
+
+    const oldIndex = currentGalleryIndex;
+    const direction = forcedDirection || (index > oldIndex ? 'next' : 'prev');
+
+    currentGalleryIndex = index;
+
+    mainImage.classList.remove('slide-in-left', 'slide-in-right', 'slide-out-left', 'slide-out-right');
+
+    if (direction === 'next') {
+        mainImage.classList.add('slide-out-left');
+    } else {
+        mainImage.classList.add('slide-out-right');
+    }
+
+    setTimeout(function () {
+        mainImage.src = galleryImages[currentGalleryIndex];
+
+        mainImage.classList.remove('slide-out-left', 'slide-out-right');
+
+        if (direction === 'next') {
+            mainImage.classList.add('slide-in-right');
+        } else {
+            mainImage.classList.add('slide-in-left');
+        }
+
+        setTimeout(function () {
+            mainImage.classList.remove('slide-in-left', 'slide-in-right');
+        }, 220);
+    }, 220);
+
+    document.querySelectorAll('#galleryThumbs .thumb').forEach(function (thumb) {
+        thumb.classList.remove('active');
+    });
+
+    const activeThumb = document.querySelector('#galleryThumbs .thumb[data-index="' + currentGalleryIndex + '"]');
+    if (activeThumb) {
+        activeThumb.classList.add('active');
+        activeThumb.scrollIntoView({
+            behavior: 'smooth',
+            inline: 'center',
+            block: 'nearest'
+        });
+    }
+
+    const currentElement = document.getElementById('galleryCurrent');
+    if (currentElement) {
+        currentElement.textContent = currentGalleryIndex + 1;
+    }
+
+    updateGalleryButtons();
+}
+
+function nextGalleryImage() {
+    if (!galleryImages.length) {
+        return;
+    }
+
+    let nextIndex = currentGalleryIndex + 1;
+
+    if (nextIndex >= galleryImages.length) {
+        nextIndex = 0;
+    }
+
+    setGalleryImage(nextIndex, 'next');
+}
+
+function prevGalleryImage() {
+    if (!galleryImages.length) {
+        return;
+    }
+
+    let prevIndex = currentGalleryIndex - 1;
+
+    if (prevIndex < 0) {
+        prevIndex = galleryImages.length - 1;
+    }
+
+    setGalleryImage(prevIndex, 'prev');
+}
+
+    function updateGalleryButtons() {
+        const arrows = document.querySelectorAll('.gallery-arrow');
+
+        if (galleryImages.length <= 1) {
+            arrows.forEach(function (arrow) {
+                arrow.style.display = 'none';
+            });
+        } else {
+            arrows.forEach(function (arrow) {
+                arrow.style.display = 'flex';
+            });
+        }
+    }
+
+    function switchTab(tabName, btn) {
+        document.querySelectorAll('.tab-content').forEach(function (tab) {
+            tab.classList.remove('active');
+        });
+
+        document.querySelectorAll('.tab-btn').forEach(function (button) {
+            button.classList.remove('active');
+        });
+
+        document.getElementById('tab-' + tabName).classList.add('active');
+        btn.classList.add('active');
+    }
+
+    function setRating(rating) {
+        const ratingInput = document.getElementById('ratingInput');
+
+        if (ratingInput) {
+            ratingInput.value = rating;
+        }
+
+        const stars = document.querySelectorAll('#starSelect i');
+
+        stars.forEach(function (star, index) {
+            if (index < rating) {
+                star.className = 'fa-solid fa-star';
+            } else {
+                star.className = 'fa-regular fa-star';
+            }
+        });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,308 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Zamówienie{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <h1 class="page-title mb-4">
+                <i class="fa-solid fa-credit-card"></i> Dane zamówienia
+            </h1>
+
+            <!-- Order summary -->
+            <div class="checkout-summary mb-4">
+                <h5 class="checkout-section-title">
+                    <i class="fa-solid fa-cart-shopping"></i> Podsumowanie koszyka
+                </h5>
+                {% for item in cart_items %}
+                    <div class="checkout-item">
+                        <span class="checkout-item-name">{{ item.product.name }}</span>
+                        <span class="checkout-item-qty">× {{ item.quantity }}</span>
+                        <span class="checkout-item-price">{{ item.item_total }} zł</span>
+                    </div>
+                {% endfor %}
+					<div class="checkout-total-row">
+						<span>Suma produktów:</span>
+						<span class="checkout-total-price">{{ total }} zł</span>
+					</div>
+
+					{% if discount_code %}
+						<div class="checkout-total-row discount-row">
+							<span>Rabat - kod {{ discount_code.code }}</span>
+							<span class="checkout-discount-price">-{{ discount_amount }} zł</span>
+						</div>
+					{% endif %}
+
+					<div class="checkout-total-row final-total-row">
+						<span>Do zapłaty:</span>
+						<span class="checkout-total-price">{{ final_total }} zł</span>
+					</div>
+            </div>
+			<div class="checkout-form-card mb-4">
+				<h5 class="checkout-section-title">
+					<i class="fa-solid fa-ticket"></i> Kod rabatowy
+				</h5>
+
+				<form method="POST" id="discountForm">
+					{% csrf_token %}
+					<input type="hidden" name="action" value="apply_discount">
+
+					<div class="discount-code-row">
+						<input
+							type="text"
+							name="discount_code"
+							class="checkout-field"
+							placeholder="Wpisz kod rabatowy"
+							value="{% if discount_code %}{{ discount_code.code }}{% endif %}"
+						>
+						<button type="submit" class="btn-apply-discount">
+							Zastosuj
+						</button>
+					</div>
+				</form>
+			</div>
+            <!-- Validation messages -->
+            {% if messages %}
+                <div class="checkout-messages mb-3">
+                    {% for message in messages %}
+                        <div class="checkout-alert checkout-alert-{{ message.tags }}">
+                            <i class="fa-solid {% if message.tags == 'error' %}fa-circle-exclamation{% elif message.tags == 'success' %}fa-check-circle{% else %}fa-info-circle{% endif %}"></i>
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Checkout form -->
+            <div class="checkout-form-card">
+                <h5 class="checkout-section-title">
+                    <i class="fa-solid fa-user"></i> Twoje dane
+                </h5>
+				<form method="POST" id="orderForm">
+					{% csrf_token %}
+					<input type="hidden" name="action" value="place_order">
+
+                    <div class="form-group">
+                        <label>Imię i nazwisko</label>
+                        <input type="text" name="name" class="checkout-field" required
+                               placeholder="Jan Kowalski"
+                               value="{% if form_data %}{{ form_data.name }}{% elif user.is_authenticated %}{{ user.get_full_name|default:user.username }}{% endif %}">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Adres e-mail</label>
+                        <input type="email" name="email" class="checkout-field" required
+                               placeholder="jan@email.com"
+                               value="{% if form_data %}{{ form_data.email }}{% elif user.is_authenticated %}{{ user.email }}{% endif %}">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Telefon</label>
+                        <input type="tel" name="phone" class="checkout-field"
+                               placeholder="+48 123 456 789"
+                               value="{% if form_data %}{{ form_data.phone }}{% elif user_profile %}{{ user_profile.phone }}{% endif %}">
+                    </div>
+                </div>
+
+                <div class="checkout-form-card mt-3">
+                    <h5 class="checkout-section-title">
+                        <i class="fa-solid fa-truck"></i> Adres dostawy
+                    </h5>
+
+                    <div class="form-group">
+                        <label>Ulica</label>
+                        <input type="text" name="street" class="checkout-field" required
+                               placeholder="Przykładowa"
+                               value="{% if form_data %}{{ form_data.street }}{% elif user_profile %}{{ user_profile.street }}{% endif %}">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group form-half">
+                            <label>Nr domu</label>
+                            <input type="text" name="house_number" class="checkout-field" required
+                                   placeholder="12"
+                                   value="{% if form_data %}{{ form_data.house_number }}{% elif user_profile %}{{ user_profile.house_number }}{% endif %}">
+                        </div>
+                        <div class="form-group form-half">
+                            <label>Nr mieszkania</label>
+                            <input type="text" name="apartment_number" class="checkout-field"
+                                   placeholder="4 (opcjonalne)"
+                                   value="{% if form_data %}{{ form_data.apartment_number }}{% elif user_profile %}{{ user_profile.apartment_number }}{% endif %}">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 0 0 35%;">
+                            <label>Kod pocztowy</label>
+                            <input type="text" name="postal_code" class="checkout-field" required
+                                   placeholder="00-001"
+                                   value="{% if form_data %}{{ form_data.postal_code }}{% elif user_profile %}{{ user_profile.postal_code }}{% endif %}">
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label>Miejscowość</label>
+                            <input type="text" name="city" class="checkout-field" required
+                                   placeholder="Warszawa"
+                                   value="{% if form_data %}{{ form_data.city }}{% elif user_profile %}{{ user_profile.city }}{% endif %}">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="checkout-form-card mt-3">
+                    <h5 class="checkout-section-title">
+                        <i class="fa-solid fa-credit-card"></i> Metoda płatności
+                    </h5>
+
+                    <div class="payment-methods">
+                        <label class="payment-option">
+                            <input type="radio" name="payment_method" value="transfer" checked>
+                            <div class="payment-card">
+                                <i class="fa-solid fa-building-columns"></i>
+                                <span>Przelew bankowy</span>
+                            </div>
+                        </label>
+                        <label class="payment-option">
+                            <input type="radio" name="payment_method" value="blik">
+                            <div class="payment-card">
+                                <i class="fa-solid fa-mobile-screen-button"></i>
+                                <span>BLIK</span>
+                            </div>
+                        </label>
+                        <label class="payment-option">
+                            <input type="radio" name="payment_method" value="card">
+                            <div class="payment-card">
+                                <i class="fa-regular fa-credit-card"></i>
+                                <span>Karta płatnicza</span>
+                            </div>
+                        </label>
+                        <label class="payment-option">
+                            <input type="radio" name="payment_method" value="cod">
+                            <div class="payment-card">
+                                <i class="fa-solid fa-money-bill-wave"></i>
+                                <span>Przy odbiorze</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="checkout-form-card mt-3">
+                    <div class="form-group">
+                        <label>Uwagi do zamówienia</label>
+                        <textarea name="notes" class="checkout-field checkout-textarea"
+					placeholder="Opcjonalne uwagi...">{% if form_data %}{{ form_data.notes }}{% endif %}</textarea>
+                    </div>
+
+                    <div class="checkout-actions">
+                        <a href="{% url 'cart' %}" class="btn-back-cart">
+                            <i class="fa-solid fa-arrow-left"></i> Powrót do koszyka
+                        </a>
+                        <button type="submit" class="btn-place-order">
+							<i class="fa-solid fa-check"></i> Złóż zamówienie — {{ final_total }} zł
+						</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const storageKey = 'checkout_form_data';
+
+    const fieldNames = [
+        'name',
+        'email',
+        'phone',
+        'street',
+        'house_number',
+        'apartment_number',
+        'postal_code',
+        'city',
+        'payment_method',
+        'notes'
+    ];
+
+    function getCheckoutFields() {
+        return fieldNames
+            .map(function (name) {
+                return document.querySelector('[name="' + name + '"]');
+            })
+            .filter(function (field) {
+                return field !== null;
+            });
+    }
+
+    function saveCheckoutData() {
+        const data = {};
+
+        fieldNames.forEach(function (name) {
+            const fields = document.querySelectorAll('[name="' + name + '"]');
+
+            if (!fields.length) {
+                return;
+            }
+
+            if (fields[0].type === 'radio') {
+                const checked = document.querySelector('[name="' + name + '"]:checked');
+                if (checked) {
+                    data[name] = checked.value;
+                }
+            } else {
+                data[name] = fields[0].value;
+            }
+        });
+
+        localStorage.setItem(storageKey, JSON.stringify(data));
+    }
+
+    function restoreCheckoutData() {
+        const saved = localStorage.getItem(storageKey);
+
+        if (!saved) {
+            return;
+        }
+
+        const data = JSON.parse(saved);
+
+        Object.keys(data).forEach(function (name) {
+            const fields = document.querySelectorAll('[name="' + name + '"]');
+
+            if (!fields.length) {
+                return;
+            }
+
+            if (fields[0].type === 'radio') {
+                fields.forEach(function (field) {
+                    field.checked = field.value === data[name];
+                });
+            } else if (!fields[0].value) {
+                fields[0].value = data[name];
+            }
+        });
+    }
+
+    restoreCheckoutData();
+
+    getCheckoutFields().forEach(function (field) {
+        field.addEventListener('input', saveCheckoutData);
+        field.addEventListener('change', saveCheckoutData);
+    });
+
+    const discountForm = document.getElementById('discountForm');
+    if (discountForm) {
+        discountForm.addEventListener('submit', function () {
+            saveCheckoutData();
+        });
+    }
+
+    const orderForm = document.getElementById('orderForm');
+    if (orderForm) {
+        orderForm.addEventListener('submit', function () {
+            localStorage.removeItem(storageKey);
+        });
+    }
+});
+</script>
+{% endblock %}
+{% endblock %}
