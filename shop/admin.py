@@ -2,7 +2,8 @@ from django.contrib import admin
 from .models import (
     Product, Category, Tag, ProductImage,
     HardwareRequirement, Review, Favorite,
-    ProductInquiry, Order, OrderItem, DiscountCode
+    ProductInquiry, Order, OrderItem, DiscountCode,
+    ShippingMethod, Return, ReturnItem
 )
 
 
@@ -94,3 +95,27 @@ class DiscountCodeAdmin(admin.ModelAdmin):
     )
     list_filter = ('discount_type', 'is_active')
     search_fields = ('code',)
+
+
+@admin.register(ShippingMethod)
+class ShippingMethodAdmin(admin.ModelAdmin):
+    list_display = ('name', 'price', 'estimated_days', 'is_active', 'display_order')
+    list_filter = ('is_active',)
+    list_editable = ('price', 'is_active', 'display_order')
+    search_fields = ('name',)
+
+
+class ReturnItemInline(admin.TabularInline):
+    model = ReturnItem
+    extra = 0
+    readonly_fields = ('order_item', 'quantity')
+
+
+@admin.register(Return)
+class ReturnAdmin(admin.ModelAdmin):
+    list_display = ('id', 'order', 'user', 'status', 'created_at', 'updated_at')
+    list_filter = ('status', 'created_at')
+    list_editable = ('status',)
+    search_fields = ('order__id', 'user__username', 'reason')
+    readonly_fields = ('created_at', 'updated_at')
+    inlines = [ReturnItemInline]

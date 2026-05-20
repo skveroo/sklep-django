@@ -27,16 +27,25 @@
 						<span class="checkout-total-price">{{ total }} zł</span>
 					</div>
 
-					{% if discount_code %}
+						{% if discount_code %}
 						<div class="checkout-total-row discount-row">
 							<span>Rabat - kod {{ discount_code.code }}</span>
 							<span class="checkout-discount-price">-{{ discount_amount }} zł</span>
 						</div>
 					{% endif %}
 
+					{% if selected_shipping %}
+						<div class="checkout-total-row">
+							<span>Dostawa — {{ selected_shipping.name }}</span>
+							<span class="checkout-total-price">
+								{% if shipping_cost == 0 %}Darmowa{% else %}{{ shipping_cost }} zł{% endif %}
+							</span>
+						</div>
+					{% endif %}
+
 					<div class="checkout-total-row final-total-row">
 						<span>Do zapłaty:</span>
-						<span class="checkout-total-price">{{ final_total }} zł</span>
+						<span class="checkout-total-price">{{ grand_total }} zł</span>
 					</div>
             </div>
 			<div class="checkout-form-card mb-4">
@@ -150,6 +159,40 @@
 
                 <div class="checkout-form-card mt-3">
                     <h5 class="checkout-section-title">
+                        <i class="fa-solid fa-truck"></i> Metoda dostawy
+                    </h5>
+
+                    {% if shipping_methods %}
+                        <div class="shipping-methods">
+                            {% for method in shipping_methods %}
+                                <label class="shipping-option">
+                                    <input type="radio" name="shipping_method_radio" value="{{ method.id }}"
+                                           data-price="{{ method.price }}"
+                                           {% if selected_shipping and selected_shipping.id == method.id %}checked{% elif forloop.first and not selected_shipping %}checked{% endif %}>
+                                    <div class="shipping-card">
+                                        <div class="shipping-info">
+                                            <i class="fa-solid {{ method.icon|default:'fa-box' }}"></i>
+                                            <div>
+                                                <span class="shipping-name">{{ method.name }}</span>
+                                                {% if method.estimated_days %}
+                                                    <span class="shipping-days">{{ method.estimated_days }}</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <span class="shipping-price">
+                                            {% if method.price == 0 %}Darmowa{% else %}{{ method.price }} zł{% endif %}
+                                        </span>
+                                    </div>
+                                </label>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted">Brak dostępnych metod dostawy.</p>
+                    {% endif %}
+                </div>
+
+                <div class="checkout-form-card mt-3">
+                    <h5 class="checkout-section-title">
                         <i class="fa-solid fa-credit-card"></i> Metoda płatności
                     </h5>
 
@@ -197,7 +240,7 @@
                             <i class="fa-solid fa-arrow-left"></i> Powrót do koszyka
                         </a>
                         <button type="submit" class="btn-place-order">
-							<i class="fa-solid fa-check"></i> Złóż zamówienie — {{ final_total }} zł
+							<i class="fa-solid fa-check"></i> Złóż zamówienie — <span id="grandTotalBtn">{{ grand_total }}</span> zł
 						</button>
                     </div>
                 </form>
@@ -302,6 +345,31 @@ document.addEventListener('DOMContentLoaded', function () {
             localStorage.removeItem(storageKey);
         });
     }
+
+    // Shipping method selection — POST to save + dynamic total update
+    const shippingRadios = document.querySelectorAll('[name="shipping_method_radio"]');
+    const grandTotalBtn = document.getElementById('grandTotalBtn');
+    const finalTotal = parseFloat('{{ final_total }}');
+
+    shippingRadios.forEach(function (radio) {
+        radio.addEventListener('change', function () {
+            // Dynamic update
+            const shippingPrice = parseFloat(radio.dataset.price) || 0;
+            const newGrandTotal = (finalTotal + shippingPrice).toFixed(2);
+            if (grandTotalBtn) {
+                grandTotalBtn.textContent = newGrandTotal;
+            }
+            // POST to save selection
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '';
+            form.innerHTML = '{% csrf_token %}'
+                + '<input type="hidden" name="action" value="select_shipping">'
+                + '<input type="hidden" name="shipping_method" value="' + radio.value + '">';
+            document.body.appendChild(form);
+            form.submit();
+        });
+    });
 });
 </script>
 {% endblock %}

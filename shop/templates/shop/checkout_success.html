@@ -28,6 +28,12 @@
                         <span>Kwota</span>
                         <strong class="success-price">{{ order.total_price }} zł</strong>
                     </div>
+                    {% if order.shipping_method_name %}
+                        <div class="success-row">
+                            <span>Dostawa</span>
+                            <span>{{ order.shipping_method_name }} ({{ order.shipping_cost }} zł)</span>
+                        </div>
+                    {% endif %}
                 </div>
 
                 <div class="success-actions">

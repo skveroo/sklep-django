@@ -234,6 +234,23 @@ class DiscountCode(models.Model):
 
         return discount.quantize(Decimal('0.01'))
 
+class ShippingMethod(models.Model):
+    name = models.CharField(max_length=100, verbose_name='Nazwa')
+    price = models.DecimalField(max_digits=8, decimal_places=2, verbose_name='Cena')
+    estimated_days = models.CharField(max_length=50, blank=True, verbose_name='Szacowany czas dostawy')
+    icon = models.CharField(max_length=50, blank=True, help_text='Klasa ikony Font Awesome, np. fa-truck')
+    is_active = models.BooleanField(default=True, verbose_name='Aktywna')
+    display_order = models.PositiveIntegerField(default=0, verbose_name='Kolejność')
+
+    class Meta:
+        ordering = ['display_order']
+        verbose_name = 'Metoda dostawy'
+        verbose_name_plural = 'Metody dostawy'
+
+    def __str__(self):
+        return f"{self.name} ({self.price} zł)"
+
+
 class Order(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Oczekujące'),
@@ -268,6 +285,16 @@ class Order(models.Model):
     shipping_postal_code = models.CharField(max_length=10, blank=True, default='')
     shipping_city = models.CharField(max_length=100, blank=True, default='')
     payment_method = models.CharField(max_length=20, choices=PAYMENT_CHOICES, default='transfer')
+    shipping_method = models.ForeignKey(
+        'ShippingMethod', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='orders', verbose_name='Metoda dostawy'
+    )
+    shipping_cost = models.DecimalField(
+        max_digits=8, decimal_places=2, default=0, verbose_name='Koszt dostawy'
+    )
+    shipping_method_name = models.CharField(
+        max_length=100, blank=True, verbose_name='Nazwa metody dostawy'
+    )
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
 
@@ -293,9 +320,62 @@ class Order(models.Model):
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True)
+    product_name = models.CharField(max_length=200, blank=True, verbose_name='Nazwa produktu')
+    product_image = models.CharField(max_length=500, blank=True, verbose_name='Ścieżka okładki')
     quantity = models.IntegerField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
-        return f"{self.product.name} x {self.quantity}"
+        name = self.product_name or (self.product.name if self.product else 'Usunięty produkt')
+        return f"{name} x {self.quantity}"
+
+    def get_display_name(self):
+        """Zwraca nazwę produktu — z snapshotu lub z FK."""
+        if self.product_name:
+            return self.product_name
+        if self.product:
+            return self.product.name
+        return 'Produkt usunięty'
+
+    def get_display_image_url(self):
+        """Zwraca URL okładki — z snapshotu lub z FK."""
+        if self.product_image:
+            return self.product_image
+        if self.product and self.product.image:
+            return self.product.image.url
+        return ''
+
+
+class Return(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Oczekujący'),
+        ('approved', 'Zaakceptowany'),
+        ('rejected', 'Odrzucony'),
+        ('completed', 'Zrealizowany'),
+    ]
+
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='returns')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='returns')
+    reason = models.TextField(verbose_name='Powód zwrotu')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    admin_notes = models.TextField(blank=True, verbose_name='Notatki admina')
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Zwrot'
+        verbose_name_plural = 'Zwroty'
+
+    def __str__(self):
+        return f"Zwrot #{self.id} do zamówienia #{self.order.id}"
+
+
+class ReturnItem(models.Model):
+    return_request = models.ForeignKey(Return, on_delete=models.CASCADE, related_name='items')
+    order_item = models.ForeignKey(OrderItem, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
+
+    def __str__(self):
+        return f"{self.order_item.get_display_name()} x {self.quantity}"

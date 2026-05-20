@@ -32,6 +32,12 @@
                                 <span class="order-info-label">Kwota</span>
                                 <span class="order-info-value order-total">{{ order.total_price }} zł</span>
                             </div>
+                            {% if order.shipping_method_name %}
+                                <div class="order-info-item">
+                                    <span class="order-info-label">Dostawa</span>
+                                    <span class="order-info-value">{{ order.shipping_method_name }} ({{ order.shipping_cost }} zł)</span>
+                                </div>
+                            {% endif %}
                             {% if order.customer_email %}
                                 <div class="order-info-item">
                                     <span class="order-info-label">E-mail</span>
@@ -46,13 +52,27 @@
                                 <span class="order-items-title">Produkty:</span>
                                 {% for item in order.items.all %}
                                     <div class="order-item-row">
-                                        <a href="{% url 'product_detail' item.product.id %}" class="order-item-name">
-                                            {{ item.product.name }}
-                                        </a>
+                                        {% if item.product %}
+                                            <a href="{% url 'product_detail' item.product.id %}" class="order-item-name">
+                                                {{ item.get_display_name }}
+                                            </a>
+                                        {% else %}
+                                            <span class="order-item-name text-muted">
+                                                {{ item.get_display_name }}
+                                            </span>
+                                        {% endif %}
                                         <span class="order-item-qty">× {{ item.quantity }}</span>
                                         <span class="order-item-price">{{ item.price }} zł</span>
                                     </div>
                                 {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        {% if order.status == 'completed' %}
+                            <div class="order-actions mt-3">
+                                <a href="{% url 'create_return' order.id %}" class="btn-return">
+                                    <i class="fa-solid fa-rotate-left"></i> Zgłoś zwrot
+                                </a>
                             </div>
                         {% endif %}
                     </div>

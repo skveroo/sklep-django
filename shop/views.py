@@ -9,7 +9,8 @@ from decimal import Decimal
 import re
 from .models import (
     Product, Category, Tag, Order, OrderItem,
-    Review, Favorite, ProductInquiry, DiscountCode
+    Review, Favorite, ProductInquiry, DiscountCode,
+    ShippingMethod, Return, ReturnItem
 )
 
 
@@ -450,6 +451,21 @@ def checkout(request):
 
     discount_code, discount_amount, final_total = get_applied_discount(request, total)
 
+    # Shipping methods
+    shipping_methods = ShippingMethod.objects.filter(is_active=True)
+    selected_shipping_id = request.session.get('selected_shipping_id')
+    selected_shipping = None
+    shipping_cost = Decimal('0.00')
+
+    if selected_shipping_id:
+        try:
+            selected_shipping = ShippingMethod.objects.get(id=selected_shipping_id, is_active=True)
+            shipping_cost = selected_shipping.price
+        except ShippingMethod.DoesNotExist:
+            request.session.pop('selected_shipping_id', None)
+
+    grand_total = final_total + shipping_cost
+
     if request.method == 'POST':
         action = request.POST.get('action')
 
@@ -479,6 +495,18 @@ def checkout(request):
             messages.success(request, f'Kod {code.code} został zastosowany.')
             return redirect('checkout')
 
+        if action == 'select_shipping':
+            shipping_id = request.POST.get('shipping_method')
+            if shipping_id:
+                try:
+                    sm = ShippingMethod.objects.get(id=shipping_id, is_active=True)
+                    request.session['selected_shipping_id'] = sm.id
+                except ShippingMethod.DoesNotExist:
+                    pass
+            else:
+                request.session.pop('selected_shipping_id', None)
+            return redirect('checkout')
+
         if action == 'place_order':
             name = request.POST.get('name', '').strip()
             email = request.POST.get('email', '').strip()
@@ -501,6 +529,10 @@ def checkout(request):
                     'discount_code': discount_code,
                     'discount_amount': discount_amount,
                     'final_total': final_total,
+                    'shipping_methods': shipping_methods,
+                    'selected_shipping': selected_shipping,
+                    'shipping_cost': shipping_cost,
+                    'grand_total': grand_total,
                     'user_profile': user_profile,
                     'cart_count': get_cart_count(request),
                     'form_data': request.POST,
@@ -508,11 +540,26 @@ def checkout(request):
 
             discount_code, discount_amount, final_total = get_applied_discount(request, total)
 
+            # Resolve shipping
+            shipping_method_obj = None
+            shipping_cost_final = Decimal('0.00')
+            shipping_method_name = ''
+            shipping_id = request.session.get('selected_shipping_id')
+            if shipping_id:
+                try:
+                    shipping_method_obj = ShippingMethod.objects.get(id=shipping_id, is_active=True)
+                    shipping_cost_final = shipping_method_obj.price
+                    shipping_method_name = shipping_method_obj.name
+                except ShippingMethod.DoesNotExist:
+                    pass
+
+            grand_total_final = final_total + shipping_cost_final
+
             order = Order.objects.create(
                 original_total=total,
                 discount_code=discount_code,
                 discount_amount=discount_amount,
-                total_price=final_total,
+                total_price=grand_total_final,
                 customer_name=name,
                 customer_email=email,
                 customer_phone=request.POST.get('phone', '').strip(),
@@ -522,18 +569,23 @@ def checkout(request):
                 shipping_postal_code=request.POST.get('postal_code', '').strip(),
                 shipping_city=request.POST.get('city', '').strip(),
                 payment_method=request.POST.get('payment_method', 'transfer'),
+                shipping_method=shipping_method_obj,
+                shipping_cost=shipping_cost_final,
+                shipping_method_name=shipping_method_name,
                 user=request.user if request.user.is_authenticated else None
             )
 
             for item in cart_items:
+                product = item['product']
                 OrderItem.objects.create(
                     order=order,
-                    product=item['product'],
+                    product=product,
+                    product_name=product.name,
+                    product_image=product.image.url if product.image else '',
                     quantity=item['quantity'],
-                    price=item['product'].price
+                    price=product.price
                 )
                 # Odejmij stan magazynowy
-                product = item['product']
                 product.stock = max(0, product.stock - item['quantity'])
                 product.save(update_fields=['stock'])
 
@@ -544,6 +596,7 @@ def checkout(request):
             request.session['cart'] = {}
             request.session.pop('discount_code_id', None)
             request.session.pop('discount_code_text', None)
+            request.session.pop('selected_shipping_id', None)
 
             return render(request, 'shop/checkout_success.html', {
                 'order': order,
@@ -562,6 +615,10 @@ def checkout(request):
         'discount_code': discount_code,
         'discount_amount': discount_amount,
         'final_total': final_total,
+        'shipping_methods': shipping_methods,
+        'selected_shipping': selected_shipping,
+        'shipping_cost': shipping_cost,
+        'grand_total': grand_total,
         'user_profile': user_profile,
         'cart_count': get_cart_count(request),
     })
@@ -723,3 +780,84 @@ def compare_products(request):
         'cart_count': get_cart_count(request),
         'compare_count': len(compare_ids),
     })
+
+
+# ========== Returns ==========
+
+@login_required(login_url='/accounts/login/')
+def my_returns(request):
+    returns = Return.objects.filter(user=request.user).select_related('order').prefetch_related('items__order_item')
+    return render(request, 'shop/returns.html', {
+        'returns': returns,
+        'cart_count': get_cart_count(request),
+    })
+
+
+@login_required(login_url='/accounts/login/')
+def create_return(request, order_id):
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+
+    # Only completed orders can be returned
+    if order.status != 'completed':
+        messages.error(request, 'Zwroty można składać tylko dla zrealizowanych zamówień.')
+        return redirect('my_orders')
+
+    # Check if return already exists for this order
+    existing_return = Return.objects.filter(order=order, user=request.user).first()
+    if existing_return:
+        messages.info(request, f'Zwrot do zamówienia #{order.id} został już zgłoszony.')
+        return redirect('my_returns')
+
+    order_items = order.items.all()
+
+    if request.method == 'POST':
+        reason = request.POST.get('reason', '').strip()
+
+        if not reason:
+            messages.error(request, 'Podaj powód zwrotu.')
+            return render(request, 'shop/create_return.html', {
+                'order': order,
+                'order_items': order_items,
+                'cart_count': get_cart_count(request),
+            })
+
+        # Collect selected items
+        selected_items = []
+        for item in order_items:
+            qty_key = f'qty_{item.id}'
+            checked_key = f'item_{item.id}'
+            if request.POST.get(checked_key):
+                qty = int(request.POST.get(qty_key, 1))
+                qty = max(1, min(qty, item.quantity))
+                selected_items.append((item, qty))
+
+        if not selected_items:
+            messages.error(request, 'Wybierz przynajmniej jeden produkt do zwrotu.')
+            return render(request, 'shop/create_return.html', {
+                'order': order,
+                'order_items': order_items,
+                'cart_count': get_cart_count(request),
+            })
+
+        # Create return
+        return_request = Return.objects.create(
+            order=order,
+            user=request.user,
+            reason=reason
+        )
+
+        for item, qty in selected_items:
+            ReturnItem.objects.create(
+                return_request=return_request,
+                order_item=item,
+                quantity=qty
+            )
+
+        messages.success(request, f'Zwrot do zamówienia #{order.id} został zgłoszony.')
+        return redirect('my_returns')
+
+    return render(request, 'shop/create_return.html', {
+        'order': order,
+        'order_items': order_items,
+        'cart_count': get_cart_count(request),
+    })

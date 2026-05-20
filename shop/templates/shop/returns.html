@@ -1,0 +1,73 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Moje zwroty{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="page-title">
+        <i class="fa-solid fa-rotate-left"></i> Moje zwroty
+    </h1>
+
+    {% if returns %}
+        <div class="orders-list mt-4">
+            {% for return in returns %}
+                <div class="order-card">
+                    <div class="order-header">
+                        <div class="order-id">
+                            <i class="fa-solid fa-rotate-left"></i>
+                            Zwrot <strong>#{{ return.id }}</strong>
+                            <span class="text-muted ms-2">
+                                do zamówienia <a href="{% url 'my_orders' %}">#{{ return.order.id }}</a>
+                            </span>
+                        </div>
+                        <span class="order-status-badge status-return-{{ return.status }}">
+                            {{ return.get_status_display }}
+                        </span>
+                    </div>
+
+                    <div class="order-body">
+                        <div class="order-info-grid">
+                            <div class="order-info-item">
+                                <span class="order-info-label">Data zgłoszenia</span>
+                                <span class="order-info-value">{{ return.created_at|date:"d.m.Y, H:i" }}</span>
+                            </div>
+                            <div class="order-info-item">
+                                <span class="order-info-label">Status</span>
+                                <span class="order-info-value">{{ return.get_status_display }}</span>
+                            </div>
+                        </div>
+
+                        <div class="return-reason mt-3">
+                            <span class="order-items-title">Powód:</span>
+                            <p class="mt-1 mb-2">{{ return.reason }}</p>
+                        </div>
+
+                        {% if return.items.all %}
+                            <div class="order-items-list">
+                                <span class="order-items-title">Zwracane produkty:</span>
+                                {% for ri in return.items.all %}
+                                    <div class="order-item-row">
+                                        <span class="order-item-name">
+                                            {{ ri.order_item.get_display_name }}
+                                        </span>
+                                        <span class="order-item-qty">× {{ ri.quantity }}</span>
+                                        <span class="order-item-price">{{ ri.order_item.price }} zł</span>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state mt-5">
+            <i class="fa-solid fa-rotate-left fa-3x"></i>
+            <p class="mt-3">Nie masz żadnych zwrotów.</p>
+            <a href="{% url 'my_orders' %}" class="btn-browse">
+                <i class="fa-solid fa-box"></i> Moje zamówienia
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

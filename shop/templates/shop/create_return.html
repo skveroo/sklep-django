@@ -1,0 +1,73 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Zgłoś zwrot{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <h1 class="page-title mb-4">
+                <i class="fa-solid fa-rotate-left"></i> Zwrot zamówienia #{{ order.id }}
+            </h1>
+
+            <div class="checkout-form-card mb-4">
+                <h5 class="checkout-section-title">
+                    <i class="fa-solid fa-box"></i> Wybierz produkty do zwrotu
+                </h5>
+
+                <form method="POST">
+                    {% csrf_token %}
+
+                    <div class="return-items-list">
+                        {% for item in order_items %}
+                            <div class="return-item-row">
+                                <label class="return-item-check">
+                                    <input type="checkbox" name="item_{{ item.id }}" value="1">
+                                    <div class="return-item-info">
+                                        {% if item.get_display_image_url %}
+                                            <img src="{{ item.get_display_image_url }}"
+                                                 class="return-item-img" alt="">
+                                        {% else %}
+                                            <div class="return-item-img-placeholder">
+                                                <i class="fa-solid fa-image"></i>
+                                            </div>
+                                        {% endif %}
+                                        <div class="return-item-details">
+                                            <span class="return-item-name">{{ item.get_display_name }}</span>
+                                            <span class="return-item-price">{{ item.price }} zł / szt.</span>
+                                        </div>
+                                    </div>
+                                </label>
+                                <div class="return-item-qty">
+                                    <label>Ilość:</label>
+                                    <input type="number" name="qty_{{ item.id }}"
+                                           value="{{ item.quantity }}" min="1" max="{{ item.quantity }}"
+                                           class="checkout-field return-qty-input">
+                                    <span class="text-muted">/ {{ item.quantity }}</span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="checkout-form-card mt-3">
+                        <h5 class="checkout-section-title">
+                            <i class="fa-solid fa-comment"></i> Powód zwrotu
+                        </h5>
+                        <textarea name="reason" class="checkout-field checkout-textarea" required
+                                  placeholder="Opisz powód zwrotu..."></textarea>
+                    </div>
+
+                    <div class="checkout-actions mt-3">
+                        <a href="{% url 'my_orders' %}" class="btn-back-cart">
+                            <i class="fa-solid fa-arrow-left"></i> Powrót do zamówień
+                        </a>
+                        <button type="submit" class="btn-place-order">
+                            <i class="fa-solid fa-paper-plane"></i> Zgłoś zwrot
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
