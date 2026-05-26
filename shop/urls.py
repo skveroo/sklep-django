@@ -31,6 +31,9 @@ urlpatterns = [
     path('compare/remove/<int:id>/', views.remove_from_compare, name='remove_from_compare'),
     path('compare/clear/', views.clear_compare, name='clear_compare'),
 
+    # Invoice
+    path('order/<int:order_id>/invoice/', views.download_invoice, name='download_invoice'),
+
     # Returns
     path('returns/', views.my_returns, name='my_returns'),
     path('order/<int:order_id>/return/', views.create_return, name='create_return'),

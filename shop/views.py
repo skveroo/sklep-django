@@ -12,6 +12,7 @@ from .models import (
     Review, Favorite, ProductInquiry, DiscountCode,
     ShippingMethod, Return, ReturnItem
 )
+from .invoice import generate_invoice_pdf
 
 
 def validate_checkout_fields(post_data):
@@ -860,4 +861,24 @@ def create_return(request, order_id):
         'order': order,
         'order_items': order_items,
         'cart_count': get_cart_count(request),
-    })
+    })
+
+
+# ========== Invoice PDF ==========
+
+@login_required(login_url='/accounts/login/')
+def download_invoice(request, order_id):
+    """Download PDF invoice for order. Owner or staff only."""
+    order = get_object_or_404(
+        Order.objects.select_related('discount_code', 'shipping_method')
+        .prefetch_related('items__product'),
+        id=order_id
+    )
+
+    # Security: only order owner or staff
+    if order.user != request.user and not request.user.is_staff:
+        messages.error(request, 'Nie masz dostępu do tej faktury.')
+        return redirect('my_orders')
+
+    return generate_invoice_pdf(order)
+

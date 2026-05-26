@@ -70,8 +70,17 @@
 
                         {% if order.status == 'completed' %}
                             <div class="order-actions mt-3">
+                                <a href="{% url 'download_invoice' order.id %}" class="btn-invoice">
+                                    <i class="fa-solid fa-file-pdf"></i> Pobierz fakturę
+                                </a>
                                 <a href="{% url 'create_return' order.id %}" class="btn-return">
                                     <i class="fa-solid fa-rotate-left"></i> Zgłoś zwrot
+                                </a>
+                            </div>
+                        {% else %}
+                            <div class="order-actions mt-3">
+                                <a href="{% url 'download_invoice' order.id %}" class="btn-invoice">
+                                    <i class="fa-solid fa-file-pdf"></i> Pobierz fakturę
                                 </a>
                             </div>
                         {% endif %}
