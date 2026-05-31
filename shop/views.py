@@ -229,20 +229,32 @@ def product_detail(request, id):
 @login_required(login_url='/accounts/login/')
 def toggle_favorite(request, id):
     product = get_object_or_404(Product, id=id)
+
     favorite, created = Favorite.objects.get_or_create(
-        user=request.user, product=product
+        user=request.user,
+        product=product
     )
-    if not created:
+
+    if created:
+        is_favorite = True
+        messages.success(request, f'Dodano "{product.name}" do ulubionych.')
+    else:
         favorite.delete()
         is_favorite = False
-    else:
-        is_favorite = True
+        messages.info(request, f'Usunięto "{product.name}" z ulubionych.')
 
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return JsonResponse({'is_favorite': is_favorite})
+        return JsonResponse({
+            'is_favorite': is_favorite,
+            'product_id': product.id,
+        })
 
-    return redirect('product_detail', id=id)
+    next_url = request.GET.get('next') or request.META.get('HTTP_REFERER')
 
+    if next_url:
+        return redirect(next_url)
+
+    return redirect('product_detail', id=product.id)
 
 @login_required(login_url='/accounts/login/')
 def my_favorites(request):
@@ -251,7 +263,19 @@ def my_favorites(request):
         'favorites': favorites,
         'cart_count': get_cart_count(request),
     })
+@login_required(login_url='/accounts/login/')
+def my_reviews(request):
+    reviews = (
+        Review.objects
+        .filter(user=request.user)
+        .select_related('product', 'product__category')
+        .order_by('-created_at')
+    )
 
+    return render(request, 'shop/my_reviews.html', {
+        'reviews': reviews,
+        'cart_count': get_cart_count(request),
+    })
 
 @login_required(login_url='/accounts/login/')
 def add_review(request, id):

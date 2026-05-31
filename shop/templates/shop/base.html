@@ -28,6 +28,10 @@
         </form>
 
         <div class="nav-actions">
+		<button type="button" class="nav-btn theme-toggle-btn" id="themeToggleBtn" title="Zmień motyw">
+			<i class="fa-solid fa-sun" id="themeToggleIcon"></i>
+			<span id="themeToggleText">Jasny</span>
+		</button>
             <a href="{% url 'product_list' %}" class="nav-btn">
                 <i class="fa-solid fa-grid-2"></i> Produkty
             </a>
@@ -205,6 +209,54 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 });
+</script>
+<script>
+(function () {
+    const savedTheme = localStorage.getItem('theme');
+    const body = document.body;
+
+    if (savedTheme === 'light') {
+        body.classList.add('light-theme');
+    }
+
+    function updateThemeButton() {
+        const isLight = body.classList.contains('light-theme');
+        const icon = document.getElementById('themeToggleIcon');
+        const text = document.getElementById('themeToggleText');
+
+        if (!icon || !text) {
+            return;
+        }
+
+        if (isLight) {
+            icon.className = 'fa-solid fa-moon';
+            text.textContent = 'Ciemny';
+        } else {
+            icon.className = 'fa-solid fa-sun';
+            text.textContent = 'Jasny';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const button = document.getElementById('themeToggleBtn');
+
+        updateThemeButton();
+
+        if (button) {
+            button.addEventListener('click', function () {
+                body.classList.toggle('light-theme');
+
+                if (body.classList.contains('light-theme')) {
+                    localStorage.setItem('theme', 'light');
+                } else {
+                    localStorage.setItem('theme', 'dark');
+                }
+
+                updateThemeButton();
+            });
+        }
+    });
+})();
 </script>
 {% block extra_js %}{% endblock %}
 </body>
