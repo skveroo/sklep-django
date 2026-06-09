@@ -3,9 +3,8 @@ from .models import (
     Product, Category, Tag, ProductImage,
     HardwareRequirement, Review, Favorite,
     ProductInquiry, Order, OrderItem, DiscountCode,
-    ShippingMethod, Return, ReturnItem
+    ShippingMethod, Return, ReturnItem, AdminTask
 )
-
 
 class ProductImageInline(admin.TabularInline):
     model = ProductImage
@@ -119,3 +118,20 @@ class ReturnAdmin(admin.ModelAdmin):
     search_fields = ('order__id', 'user__username', 'reason')
     readonly_fields = ('created_at', 'updated_at')
     inlines = [ReturnItemInline]
+@admin.register(AdminTask)
+class AdminTaskAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'title', 'status', 'priority',
+        'assigned_to', 'order', 'product', 'return_request',
+        'due_date', 'created_at'
+    )
+    list_filter = ('status', 'priority', 'due_date', 'created_at')
+    list_editable = ('status', 'priority')
+    search_fields = (
+        'title', 'description',
+        'assigned_to__username',
+        'order__id',
+        'product__name',
+        'return_request__id'
+    )
+    readonly_fields = ('created_at', 'completed_at')

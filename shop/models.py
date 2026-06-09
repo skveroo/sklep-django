@@ -379,3 +379,88 @@ class ReturnItem(models.Model):
 
     def __str__(self):
         return f"{self.order_item.get_display_name()} x {self.quantity}"
+
+class AdminTask(models.Model):
+    STATUS_CHOICES = [
+        ('todo', 'Do zrobienia'),
+        ('in_progress', 'W trakcie'),
+        ('done', 'Zakończone'),
+        ('cancelled', 'Anulowane'),
+    ]
+
+    PRIORITY_CHOICES = [
+        ('low', 'Niski'),
+        ('normal', 'Normalny'),
+        ('high', 'Wysoki'),
+        ('urgent', 'Pilny'),
+    ]
+
+    title = models.CharField(max_length=200, verbose_name='Tytuł')
+    description = models.TextField(blank=True, verbose_name='Opis')
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='todo',
+        verbose_name='Status'
+    )
+
+    priority = models.CharField(
+        max_length=20,
+        choices=PRIORITY_CHOICES,
+        default='normal',
+        verbose_name='Priorytet'
+    )
+
+    assigned_to = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='admin_tasks',
+        verbose_name='Przypisane do'
+    )
+
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='admin_tasks',
+        verbose_name='Powiązane zamówienie'
+    )
+
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='admin_tasks',
+        verbose_name='Powiązany produkt'
+    )
+
+    return_request = models.ForeignKey(
+        Return,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='admin_tasks',
+        verbose_name='Powiązany zwrot'
+    )
+
+    due_date = models.DateField(null=True, blank=True, verbose_name='Termin')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Data utworzenia')
+    completed_at = models.DateTimeField(null=True, blank=True, verbose_name='Data zakończenia')
+
+    class Meta:
+        ordering = ['status', '-created_at']
+        verbose_name = 'Zadanie administratora'
+        verbose_name_plural = 'Zadania administratora'
+
+    def __str__(self):
+        return self.title
+
+    def mark_done(self):
+        self.status = 'done'
+        self.completed_at = timezone.now()
+        self.save()

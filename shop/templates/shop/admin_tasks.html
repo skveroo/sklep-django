@@ -1,0 +1,263 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Zadania administratora{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="admin-tasks-header">
+        <div>
+            <h1 class="page-title">
+                <i class="fa-solid fa-list-check"></i> Zadania do realizacji
+            </h1>
+            <p class="stats-subtitle">
+                Zarządzaj zadaniami administracyjnymi sklepu.
+            </p>
+        </div>
+
+        <button type="button" class="admin-task-add-toggle" onclick="toggleTaskForm()">
+            <i class="fa-solid fa-plus"></i> Dodaj zadanie
+        </button>
+    </div>
+
+    {% if messages %}
+        <div class="checkout-messages mb-3">
+            {% for message in messages %}
+                <div class="checkout-alert checkout-alert-{{ message.tags }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <div class="admin-task-form-card" id="adminTaskFormCard" style="display: none;">
+        <div class="admin-task-form-head">
+            <h5 class="stats-section-title">
+                <i class="fa-solid fa-plus"></i> Nowe zadanie
+            </h5>
+
+            <button type="button" class="admin-task-close-btn" onclick="toggleTaskForm()">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <form method="POST">
+            {% csrf_token %}
+
+            <div class="admin-task-form-grid">
+                <div class="form-group admin-task-full">
+                    <label>Tytuł</label>
+                    <input type="text" name="title" class="checkout-field" required>
+                </div>
+
+                <div class="form-group admin-task-full">
+                    <label>Opis</label>
+                    <textarea name="description" class="checkout-field checkout-textarea"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Priorytet</label>
+                    <select name="priority" class="checkout-field admin-select">
+                        {% for value, label in priority_choices %}
+                            <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Przypisane do</label>
+                    <select name="assigned_to" class="checkout-field admin-select">
+                        <option value="">Brak</option>
+                        {% for staff in staff_users %}
+                            <option value="{{ staff.id }}">{{ staff.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Powiązane zamówienie</label>
+                    <select name="order" class="checkout-field admin-select">
+                        <option value="">Brak</option>
+                        {% for order in orders %}
+                            <option value="{{ order.id }}">#{{ order.id }} - {{ order.total_price }} zł</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Powiązany produkt</label>
+                    <select name="product" class="checkout-field admin-select">
+                        <option value="">Brak</option>
+                        {% for product in products %}
+                            <option value="{{ product.id }}">{{ product.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Powiązany zwrot</label>
+                    <select name="return_request" class="checkout-field admin-select">
+                        <option value="">Brak</option>
+                        {% for return in returns %}
+                            <option value="{{ return.id }}">Zwrot #{{ return.id }} - zamówienie #{{ return.order.id }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Termin</label>
+                    <input type="date" name="due_date" class="checkout-field">
+                </div>
+            </div>
+
+            <button type="submit" class="admin-task-submit-btn">
+                <i class="fa-solid fa-plus"></i> Zapisz zadanie
+            </button>
+        </form>
+    </div>
+
+    <div class="admin-task-toolbar">
+        <div class="admin-task-count">
+            <i class="fa-solid fa-clipboard-list"></i>
+            Liczba zadań: <strong>{{ tasks|length }}</strong>
+        </div>
+
+        <form method="GET">
+            <select name="status" class="checkout-field admin-select admin-task-filter" onchange="this.form.submit()">
+                <option value="">Wszystkie statusy</option>
+                {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+
+    {% if tasks %}
+        <div class="admin-task-board">
+            {% for task in tasks %}
+                <div class="admin-task-card priority-{{ task.priority }}">
+                    <div class="admin-task-card-top">
+                        <div>
+                            <h3>{{ task.title }}</h3>
+                            <div class="admin-task-badges">
+                                <span class="task-status task-status-{{ task.status }}">
+                                    {{ task.get_status_display }}
+                                </span>
+                                <span class="task-priority task-priority-{{ task.priority }}">
+                                    {{ task.get_priority_display }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <form method="POST" action="{% url 'update_admin_task_status' task.id %}" class="admin-task-status-form">
+                            {% csrf_token %}
+                            <select name="status" class="checkout-field admin-select admin-task-status-select">
+                                {% for value, label in status_choices %}
+                                    <option value="{{ value }}" {% if task.status == value %}selected{% endif %}>
+                                        {{ label }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="admin-task-save-btn">
+                                Zapisz
+                            </button>
+                        </form>
+                    </div>
+
+                    {% if task.description %}
+                        <p class="admin-task-description">
+                            {{ task.description }}
+                        </p>
+                    {% endif %}
+
+                    <div class="admin-task-info-grid">
+                        <div>
+                            <span>Przypisane do</span>
+                            <strong>
+                                {% if task.assigned_to %}
+                                    {{ task.assigned_to.username }}
+                                {% else %}
+                                    Brak
+                                {% endif %}
+                            </strong>
+                        </div>
+
+                        <div>
+                            <span>Termin</span>
+                            <strong>
+                                {% if task.due_date %}
+                                    {{ task.due_date|date:"d.m.Y" }}
+                                {% else %}
+                                    Brak
+                                {% endif %}
+                            </strong>
+                        </div>
+
+                        <div>
+                            <span>Utworzono</span>
+                            <strong>{{ task.created_at|date:"d.m.Y" }}</strong>
+                        </div>
+
+                        <div>
+                            <span>Zakończono</span>
+                            <strong>
+                                {% if task.completed_at %}
+                                    {{ task.completed_at|date:"d.m.Y" }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </strong>
+                        </div>
+                    </div>
+
+                    <div class="admin-task-relations">
+                        {% if task.order %}
+                            <span>
+                                <i class="fa-solid fa-receipt"></i> Zamówienie #{{ task.order.id }}
+                            </span>
+                        {% endif %}
+
+                        {% if task.product %}
+                            <span>
+                                <i class="fa-solid fa-box"></i> {{ task.product.name }}
+                            </span>
+                        {% endif %}
+
+                        {% if task.return_request %}
+                            <span>
+                                <i class="fa-solid fa-rotate-left"></i> Zwrot #{{ task.return_request.id }}
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <i class="fa-solid fa-list-check fa-3x"></i>
+            <h4>Brak zadań</h4>
+            <p>Nie ma jeszcze żadnych zadań do realizacji.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleTaskForm() {
+    const formCard = document.getElementById('adminTaskFormCard');
+
+    if (!formCard) {
+        return;
+    }
+
+    if (formCard.style.display === 'none' || formCard.style.display === '') {
+        formCard.style.display = 'block';
+        formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+        formCard.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}

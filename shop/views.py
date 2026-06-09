@@ -6,11 +6,12 @@ from django.db.models import Sum, Count, F, DecimalField, ExpressionWrapper
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.models import User
 from decimal import Decimal
+from django.utils import timezone
 import re
 from .models import (
     Product, Category, Tag, Order, OrderItem,
     Review, Favorite, ProductInquiry, DiscountCode,
-    ShippingMethod, Return, ReturnItem
+    ShippingMethod, Return, ReturnItem, AdminTask
 )
 from .invoice import generate_invoice_pdf
 
@@ -905,4 +906,79 @@ def download_invoice(request, order_id):
         return redirect('my_orders')
 
     return generate_invoice_pdf(order)
-
+@staff_member_required
+def admin_tasks(request):
+    status_filter = request.GET.get('status', '')
+
+    tasks = AdminTask.objects.select_related(
+        'assigned_to', 'order', 'product', 'return_request'
+    ).order_by('status', '-created_at')
+
+    if status_filter:
+        tasks = tasks.filter(status=status_filter)
+
+    staff_users = User.objects.filter(is_staff=True).order_by('username')
+    orders = Order.objects.order_by('-created_at')[:30]
+    products = Product.objects.filter(is_active=True).order_by('name')[:50]
+    returns = Return.objects.order_by('-created_at')[:30]
+
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        description = request.POST.get('description', '').strip()
+        priority = request.POST.get('priority', 'normal')
+        assigned_to_id = request.POST.get('assigned_to') or None
+        order_id = request.POST.get('order') or None
+        product_id = request.POST.get('product') or None
+        return_id = request.POST.get('return_request') or None
+        due_date = request.POST.get('due_date') or None
+
+        if not title:
+            messages.error(request, 'Tytuł zadania jest wymagany.')
+            return redirect('admin_tasks')
+
+        AdminTask.objects.create(
+            title=title,
+            description=description,
+            priority=priority,
+            assigned_to_id=assigned_to_id,
+            order_id=order_id,
+            product_id=product_id,
+            return_request_id=return_id,
+            due_date=due_date,
+        )
+
+        messages.success(request, 'Zadanie zostało dodane.')
+        return redirect('admin_tasks')
+
+    return render(request, 'shop/admin_tasks.html', {
+        'tasks': tasks,
+        'status_filter': status_filter,
+        'staff_users': staff_users,
+        'orders': orders,
+        'products': products,
+        'returns': returns,
+        'status_choices': AdminTask.STATUS_CHOICES,
+        'priority_choices': AdminTask.PRIORITY_CHOICES,
+        'cart_count': get_cart_count(request),
+    })
+
+
+@staff_member_required
+def update_admin_task_status(request, task_id):
+    task = get_object_or_404(AdminTask, id=task_id)
+
+    if request.method == 'POST':
+        new_status = request.POST.get('status')
+
+        if new_status in dict(AdminTask.STATUS_CHOICES):
+            task.status = new_status
+
+            if new_status == 'done':
+                task.completed_at = timezone.now()
+            else:
+                task.completed_at = None
+
+            task.save()
+            messages.success(request, 'Status zadania został zmieniony.')
+
+    return redirect('admin_tasks')
